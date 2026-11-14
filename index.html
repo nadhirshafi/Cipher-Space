@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIPHER SPACE — First-Person Zero-G Satellite Spacewalk</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+
+<body>
+  <!-- 3D Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- Helmet Visor Glass & Scanline Overlay -->
+  <div class="visor-glass"></div>
+
+  <!-- Center Crosshair Reticle -->
+  <div id="reticle">
+    <div class="reticle-center-dot"></div>
+    <div class="reticle-corner reticle-tl"></div>
+    <div class="reticle-corner reticle-tr"></div>
+    <div class="reticle-corner reticle-bl"></div>
+    <div class="reticle-corner reticle-br"></div>
+  </div>
+
+  <!-- Astronaut Helmet Visor HUD -->
+  <div id="visor-hud">
+    <!-- Header Telemetry Panels -->
+    <div class="hud-header">
+      <!-- Target Satellite Telemetry -->
+      <div class="hud-panel">
+        <div class="hud-title">TARGET: SAT-ALPHA 01</div>
+        <div class="telemetry-row">
+          <span>DISTANCE:</span>
+          <span id="hud-range" class="telemetry-value">5.00 m</span>
+        </div>
+        <div class="telemetry-row">
+          <span>REL VELOCITY:</span>
+          <span id="hud-speed" class="telemetry-value">0.00 m/s</span>
+        </div>
+        <div class="telemetry-row">
+          <span>TRANSPONDER:</span>
+          <span class="telemetry-value nominal">SYNCHRONIZED</span>
+        </div>
+      </div>
+
+      <!-- EVA Suit Status -->
+      <div class="hud-panel">
+        <div class="hud-title">EVA SUIT TELEMETRY</div>
+        <div class="telemetry-row">
+          <span>RCS THRUSTERS:</span>
+          <span class="telemetry-value nominal">NOMINAL</span>
+        </div>
+        <div class="telemetry-row">
+          <span>OXYGEN PRESSURE:</span>
+          <span class="telemetry-value nominal">101.3 kPa</span>
+        </div>
+        <div class="telemetry-row">
+          <span>AUDIO COMMS:</span>
+          <span id="hud-audio-status" class="telemetry-value nominal">ONLINE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Panels -->
+    <div class="hud-footer">
+      <!-- Quick Flight Controls Help Card -->
+      <div class="hud-panel controls-card">
+        <div class="hud-title">FLIGHT CONTROLS</div>
+        <div class="telemetry-row">
+          <span><span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span
+              class="key-badge">D</span></span>
+          <span>Forward / Strafe</span>
+        </div>
+        <div class="telemetry-row">
+          <span><span class="key-badge">SPACE</span> / <span class="key-badge">SHIFT</span></span>
+          <span>Ascend / Descend</span>
+        </div>
+        <div class="telemetry-row">
+          <span><span class="key-badge">MOUSE</span></span>
+          <span>Pitch & Yaw Look</span>
+        </div>
+        <div class="telemetry-row">
+          <span><span class="key-badge">E</span> / <span class="key-badge">TAB</span></span>
+          <span>Customize Satellite</span>
+        </div>
+        <div class="telemetry-row">
+          <span><span class="key-badge">H</span> / <span class="key-badge">M</span></span>
+          <span>Toggle HUD / Mute Audio</span>
+        </div>
+      </div>
+
+      <!-- Spatial Position Coordinates -->
+      <div class="hud-panel">
+        <div class="hud-title">ORBITAL COORDINATES</div>
+        <div class="telemetry-row">
+          <span id="hud-coords" class="telemetry-value">X: 0.0 Y: 0.5 Z: 5.2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Proximity Interaction Prompt -->
+  <div id="interact-prompt" style="display: none;">
+    <span class="key-badge">E</span> or <span class="key-badge">TAB</span>
+    <span>OPEN ENGINEERING WORKBENCH</span>
+  </div>
+
+  <!-- Orbital Customization Workbench (Split-Screen Panel) -->
+  <div id="workbench-panel"></div>
+
+  <!-- Victory Mission Modal -->
+  <div id="victory-modal"></div>
+
+  <!-- Click to Start / Pointer Lock Overlay -->
+  <div id="lock-prompt">
+    <div class="modal-box">
+      <div class="modal-title">CIPHER SPACE</div>
+      <div class="modal-subtitle">ORBITAL EVA SIMULATION // SAT-ALPHA 01</div>
+      <div class="modal-btn">CLICK TO ENGAGE ZERO-G FLIGHT</div>
+
+      <div class="controls-summary">
+        <div><span class="key-badge">W</span> <span class="key-badge">S</span> Thrust Forward / Back</div>
+        <div><span class="key-badge">A</span> <span class="key-badge">D</span> Strafe Left / Right</div>
+        <div><span class="key-badge">SPACE</span> Ascend</div>
+        <div><span class="key-badge">SHIFT</span> Descend</div>
+        <div><span class="key-badge">MOUSE</span> 360° View Look</div>
+        <div><span class="key-badge">ESC</span> Release Mouse</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>

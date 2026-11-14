@@ -1,0 +1,759 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #030508;
+  color: #e2f1ff;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+#webgl-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+}
+
+/* =========================================
+   ASTRONAUT HELMET VISOR VIGNETTE
+   ========================================= */
+.visor-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  /* Subtle curved visor reflection and outer dark rim */
+  background: 
+    radial-gradient(ellipse at 50% 50%, rgba(0, 40, 80, 0.0) 55%, rgba(0, 20, 40, 0.25) 85%, rgba(2, 5, 12, 0.85) 100%),
+    linear-gradient(180deg, rgba(30, 90, 150, 0.08) 0%, transparent 20%, transparent 80%, rgba(10, 30, 60, 0.2) 100%);
+  box-shadow: inset 0 0 100px rgba(0, 150, 255, 0.12);
+}
+
+/* Visor subtle horizontal scanlines */
+.visor-glass::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.03),
+    rgba(0, 0, 0, 0.03) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  opacity: 0.7;
+}
+
+/* =========================================
+   HUD CONTAINER & OVERLAYS
+   ========================================= */
+#visor-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 32px;
+}
+
+/* Header Telemetry */
+.hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hud-panel {
+  background: rgba(6, 16, 28, 0.65);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 180, 255, 0.1), inset 0 0 10px rgba(0, 180, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  padding: 12px 18px;
+  min-width: 240px;
+}
+
+.hud-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #00e5ff;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin: 5px 0;
+  color: #a4c8e6;
+}
+
+.telemetry-value {
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+}
+
+.telemetry-value.nominal {
+  color: #00ffaa;
+  text-shadow: 0 0 6px rgba(0, 255, 170, 0.5);
+}
+
+/* Center Crosshair Reticle */
+#reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity 0.2s ease;
+}
+
+.reticle-center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  background-color: #00e5ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00e5ff;
+}
+
+.reticle-corner {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-color: rgba(0, 229, 255, 0.7);
+  border-style: solid;
+}
+
+.reticle-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.reticle-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.reticle-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.reticle-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+/* Footer Controls Card */
+.hud-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.controls-card {
+  min-width: 280px;
+}
+
+.key-badge {
+  display: inline-block;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-right: 6px;
+  box-shadow: 0 0 4px rgba(0, 229, 255, 0.3);
+}
+
+/* =========================================
+   POINTER LOCK PROMPT / PAUSE MODAL
+   ========================================= */
+#lock-prompt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background: rgba(3, 8, 16, 0.75);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.modal-box {
+  background: linear-gradient(135deg, rgba(8, 22, 40, 0.95), rgba(4, 12, 22, 0.95));
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 12px;
+  padding: 36px 44px;
+  text-align: center;
+  max-width: 520px;
+  box-shadow: 0 0 40px rgba(0, 180, 255, 0.25), inset 0 0 20px rgba(0, 180, 255, 0.1);
+  animation: glowPulse 3s infinite alternate;
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 25px rgba(0, 180, 255, 0.2); }
+  100% { box-shadow: 0 0 45px rgba(0, 229, 255, 0.45); }
+}
+
+.modal-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #00e5ff;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #8bb2d6;
+  margin-bottom: 24px;
+}
+
+.modal-btn {
+  display: inline-block;
+  cursor: pointer;
+  background: linear-gradient(90deg, #0099cc, #00e5ff);
+  color: #020b14;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 12px 28px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.modal-box:hover .modal-btn {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.9);
+}
+
+.controls-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+  border-top: 1px solid rgba(0, 229, 255, 0.2);
+  padding-top: 18px;
+  font-size: 12px;
+}
+
+
+/* =========================================
+   ORBITAL CUSTOMIZATION WORKBENCH
+   ========================================= */
+#workbench-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 440px;
+  height: 100%;
+  z-index: 20;
+  background: rgba(5, 14, 26, 0.88);
+  border-left: 1px solid rgba(0, 229, 255, 0.35);
+  box-shadow: -10px 0 35px rgba(0, 180, 255, 0.2);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#workbench-panel.open {
+  transform: translateX(0);
+}
+
+.wb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.25);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.wb-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: 2px;
+}
+
+.wb-subtitle {
+  font-size: 11px;
+  color: #8cb5db;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.wb-icon-btn {
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.wb-icon-btn:hover {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+
+/* Scenario Box */
+.wb-scenario-box {
+  background: rgba(10, 25, 45, 0.6);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.wb-scenario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.wb-scenario-label {
+  font-size: 11px;
+  color: #88a9cc;
+  font-weight: bold;
+}
+
+.wb-select {
+  background: #061426;
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  color: #00e5ff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.wb-scenario-desc {
+  font-size: 11px;
+  color: #b0d0ed;
+  line-height: 1.4;
+}
+
+/* Category Tabs */
+.wb-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.wb-tab {
+  background: rgba(10, 25, 45, 0.7);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: #9cbcdb;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.wb-tab:hover {
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #ffffff;
+}
+
+.wb-tab.active {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: #00e5ff;
+  color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+/* Part Cards */
+.wb-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.wb-card {
+  background: rgba(8, 20, 36, 0.75);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wb-card:hover {
+  border-color: rgba(0, 229, 255, 0.6);
+  background: rgba(12, 30, 52, 0.85);
+  transform: translateY(-1px);
+}
+
+.wb-card.selected {
+  border-color: #00e5ff;
+  background: rgba(0, 180, 255, 0.15);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3), inset 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.wb-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.wb-card-name {
+  font-weight: bold;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.wb-card-badge {
+  font-size: 9px;
+  background: rgba(0, 229, 255, 0.2);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+
+.wb-card-stats {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.wb-pill {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+
+.wb-pill.power { background: rgba(0, 255, 170, 0.2); color: #00ffaa; border: 1px solid rgba(0, 255, 170, 0.4); }
+.wb-pill.data  { background: rgba(0, 200, 255, 0.2); color: #00d0ff; border: 1px solid rgba(0, 200, 255, 0.4); }
+.wb-pill.draw  { background: rgba(255, 120, 60, 0.2); color: #ff8844; border: 1px solid rgba(255, 120, 60, 0.4); }
+.wb-pill.mass  { background: rgba(200, 200, 200, 0.15); color: #e0e0e0; border: 1px solid rgba(200, 200, 200, 0.3); }
+.wb-pill.load  { background: rgba(255, 200, 50, 0.2); color: #ffd040; border: 1px solid rgba(255, 200, 50, 0.4); }
+.wb-pill.heat  { background: rgba(255, 70, 70, 0.2); color: #ff5555; border: 1px solid rgba(255, 70, 70, 0.4); }
+
+.wb-card-desc {
+  font-size: 11px;
+  color: #9cbcdb;
+  line-height: 1.35;
+}
+
+/* Tuning Section */
+.wb-tuning-section, .wb-telemetry-section {
+  border-top: 1px solid rgba(0, 229, 255, 0.2);
+  padding-top: 12px;
+  margin-bottom: 14px;
+}
+
+.wb-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #00e5ff;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.wb-slider-row {
+  margin-bottom: 10px;
+}
+
+.wb-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #b0d0ed;
+  margin-bottom: 4px;
+}
+
+.wb-slider-val {
+  color: #00e5ff;
+  font-weight: bold;
+}
+
+.wb-range {
+  width: 100%;
+  accent-color: #00e5ff;
+  cursor: pointer;
+}
+
+/* Telemetry Gauges */
+.wb-gauge-row {
+  margin-bottom: 10px;
+}
+
+.wb-gauge-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: bold;
+  color: #a4c8e6;
+  margin-bottom: 3px;
+}
+
+.wb-gauge-stat.ok {
+  color: #00ffaa;
+  text-shadow: 0 0 6px rgba(0, 255, 170, 0.6);
+}
+
+.wb-gauge-stat.warn {
+  color: #ff4466;
+  text-shadow: 0 0 6px rgba(255, 68, 102, 0.6);
+}
+
+.wb-bar-bg {
+  width: 100%;
+  height: 7px;
+  background: rgba(10, 25, 45, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.wb-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.wb-bar-fill.green {
+  background: linear-gradient(90deg, #00bb77, #00ffaa);
+  box-shadow: 0 0 8px #00ffaa;
+}
+
+.wb-bar-fill.red {
+  background: linear-gradient(90deg, #bb2244, #ff4466);
+}
+
+.wb-gauge-target {
+  font-size: 10px;
+  color: #6d90b4;
+}
+
+/* Launch Button */
+.wb-footer {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.wb-launch-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: none;
+}
+
+.wb-launch-btn.disabled {
+  background: rgba(30, 45, 65, 0.6);
+  color: #627b99;
+  border: 1px solid rgba(80, 100, 130, 0.3);
+  cursor: not-allowed;
+}
+
+.wb-launch-btn.ready {
+  background: linear-gradient(90deg, #00cc88, #00ffaa);
+  color: #03140e;
+  box-shadow: 0 0 25px rgba(0, 255, 170, 0.7);
+  animation: launchPulse 1.8s infinite alternate;
+}
+
+@keyframes launchPulse {
+  0% { transform: scale(1.0); box-shadow: 0 0 15px rgba(0, 255, 170, 0.5); }
+  100% { transform: scale(1.02); box-shadow: 0 0 35px rgba(0, 255, 170, 0.9); }
+}
+
+/* In-World Proximity Interact Prompt */
+#interact-prompt {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  background: rgba(5, 16, 30, 0.85);
+  border: 1px solid rgba(0, 229, 255, 0.6);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #e0f2fe;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+#interact-prompt:hover {
+  background: rgba(8, 25, 48, 0.95);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.7);
+}
+
+/* Victory Modal */
+#victory-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  background: rgba(2, 6, 14, 0.85);
+  backdrop-filter: blur(14px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.victory-box {
+  background: linear-gradient(135deg, rgba(6, 26, 46, 0.98), rgba(2, 14, 26, 0.98));
+  border: 2px solid #00ffaa;
+  box-shadow: 0 0 50px rgba(0, 255, 170, 0.5), inset 0 0 30px rgba(0, 255, 170, 0.15);
+  border-radius: 12px;
+  padding: 40px 48px;
+  max-width: 580px;
+  text-align: center;
+  animation: victoryPop 0.4s cubic-bezier(0.18, 1, 0.3, 1);
+}
+
+@keyframes victoryPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1.0); opacity: 1; }
+}
+
+.victory-icon {
+  font-size: 54px;
+  margin-bottom: 10px;
+}
+
+.victory-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #00ffaa;
+  text-shadow: 0 0 15px rgba(0, 255, 170, 0.8);
+  margin-bottom: 6px;
+}
+
+.victory-code {
+  font-size: 13px;
+  color: #00e5ff;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.victory-desc {
+  font-size: 13px;
+  color: #c0ddf5;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.victory-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.victory-btn {
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.victory-btn.primary {
+  background: linear-gradient(90deg, #00cc88, #00ffaa);
+  color: #01140e;
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.6);
+}
+
+.victory-btn.primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 255, 170, 0.9);
+}
+
+.victory-btn.secondary {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.6);
+  color: #00e5ff;
+}
+
+.victory-btn.secondary:hover {
+  background: rgba(0, 229, 255, 0.35);
+  color: #ffffff;
+}
