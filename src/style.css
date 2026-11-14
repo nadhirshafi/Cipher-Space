@@ -444,7 +444,7 @@ html, body {
 /* =========================================
    POINTER LOCK PROMPT / MODALS
    ========================================= */
-#lock-prompt, #launch-modal, #lobby-modal {
+#lock-prompt, #launch-modal {
   position: absolute;
   top: 0;
   left: 0;
@@ -456,6 +456,23 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+#lobby-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  background: rgba(3, 8, 16, 0.88);
+  backdrop-filter: blur(14px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: default;
   transition: opacity 0.3s ease;
 }
 
@@ -466,6 +483,7 @@ html, body {
   max-width: 680px;
   width: 90%;
   padding: 30px 36px;
+  cursor: default;
 }
 
 .lobby-header {
@@ -501,6 +519,9 @@ html, body {
   padding: 10px 14px;
   border-radius: 4px;
   outline: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 

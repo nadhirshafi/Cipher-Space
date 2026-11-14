@@ -192,26 +192,12 @@
     </div>
   </div>
 
-  <!-- 4-Player Crew Lobby Modal -->
-  <div id="lobby-modal"></div>
-
-  <!-- Cinematic Mission Victory Banner -->
-  <div id="launch-modal" style="display: none;">
-    <div class="modal-box launch-box">
-      <div class="launch-icon">🛰️</div>
-      <div class="modal-title" id="launch-modal-title">MISSION COMPLETE</div>
-      <div class="modal-subtitle" id="launch-modal-desc">TELEMETRY SYNCHRONIZED WITH EARTH ORBITAL GROUND STATION</div>
-      <div class="launch-metrics-summary" id="launch-metrics-summary"></div>
-      <button id="next-mission-btn" class="modal-btn">PROCEED TO NEXT ORBITAL SCENARIO</button>
-    </div>
-  </div>
-
-  <!-- Click to Start / Pointer Lock Overlay -->
-  <div id="lock-prompt">
+  <!-- Click to Start / Pointer Lock Overlay (Only displayed after game has launched and paused) -->
+  <div id="lock-prompt" style="display: none;">
     <div class="modal-box">
       <div class="modal-title">CIPHER SPACE</div>
       <div class="modal-subtitle">ORBITAL EVA SIMULATION // SAT-ALPHA 01</div>
-      <div class="modal-btn">CLICK TO ENGAGE ZERO-G FLIGHT</div>
+      <div class="modal-btn">CLICK TO RESUME ZERO-G FLIGHT</div>
 
       <div class="controls-summary">
         <div><span class="key-badge">W</span> <span class="key-badge">S</span> Thrust Forward / Back</div>
@@ -223,6 +209,9 @@
       </div>
     </div>
   </div>
+
+  <!-- 4-Player Crew Lobby Modal -->
+  <div id="lobby-modal"></div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

@@ -62,6 +62,12 @@ export class SpacewalkController {
   }
 
   engage() {
+    // Never engage pointer lock while the pre-flight lobby modal is open
+    const lobby = document.getElementById('lobby-modal');
+    if (lobby && lobby.style.display !== 'none') {
+      return;
+    }
+
     spaceAudio.init();
     this.isLocked = true;
     if (this.onLockChange) {
@@ -92,24 +98,28 @@ export class SpacewalkController {
 
   _bindEvents() {
     const lockPrompt = document.getElementById('lock-prompt');
-    const modalBtn = document.querySelector('.modal-btn');
+    const lockBtn = document.querySelector('#lock-prompt .modal-btn');
 
-    // Click on modal button or lock prompt starts flight
-    if (modalBtn) {
-      modalBtn.addEventListener('click', (e) => {
+    // Click on lock prompt button re-engages flight only when lobby is closed
+    if (lockBtn) {
+      lockBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.engage();
       });
     }
 
     if (lockPrompt) {
-      lockPrompt.addEventListener('click', () => {
+      lockPrompt.addEventListener('click', (e) => {
+        e.stopPropagation();
         this.engage();
       });
     }
 
     // Canvas click
     this.domElement.addEventListener('click', () => {
+      const lobby = document.getElementById('lobby-modal');
+      if (lobby && lobby.style.display !== 'none') return;
+
       if (!this.isLocked) {
         this.engage();
       }

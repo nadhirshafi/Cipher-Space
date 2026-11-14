@@ -90,6 +90,12 @@ export class CrewLobby {
   }
 
   _bindEvents() {
+    const lobbyBox = document.querySelector('.lobby-box');
+    if (lobbyBox) {
+      lobbyBox.addEventListener('click', (e) => e.stopPropagation());
+      lobbyBox.addEventListener('mousedown', (e) => e.stopPropagation());
+    }
+
     const callsignInput = document.getElementById('callsign-input');
     const roomCodeInput = document.getElementById('room-code-input');
     const btnJoin = document.getElementById('btn-join-room');
@@ -97,6 +103,13 @@ export class CrewLobby {
     const btnSolo = document.getElementById('btn-solo-flight');
     const btnCopy = document.getElementById('btn-copy-link');
     const btnReady = document.getElementById('btn-toggle-ready');
+
+    if (callsignInput) {
+      callsignInput.addEventListener('mousedown', (e) => e.stopPropagation());
+    }
+    if (roomCodeInput) {
+      roomCodeInput.addEventListener('mousedown', (e) => e.stopPropagation());
+    }
 
     // Solo Flight
     if (btnSolo) {

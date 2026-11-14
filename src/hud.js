@@ -236,8 +236,11 @@ export class VisorHUD {
   }
 
   setLockedState(isLocked) {
+    const lobby = document.getElementById('lobby-modal');
+    const isLobbyOpen = lobby && lobby.style.display !== 'none';
+
     if (this.lockPrompt) {
-      this.lockPrompt.style.display = isLocked ? 'none' : 'flex';
+      this.lockPrompt.style.display = (!isLocked && !isLobbyOpen) ? 'flex' : 'none';
     }
     if (this.reticle) {
       this.reticle.style.opacity = isLocked ? '1' : '0.3';
