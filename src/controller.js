@@ -28,10 +28,24 @@ export class SpacewalkController {
     this.yaw = 0;
     this.lookSensitivity = 0.0022;
 
+    // Interactive 3D Raycasting & Manipulator state
+    this.raycaster = new THREE.Raycaster();
+    this.interactiveObjects = [];
+    this.hoveredObject = null;
+    this.isMouseDown = false;
+    this.isDraggingTune = false;
+    this.activeTuneParam = null;
+    this.activeTuneUnit = '';
+    this.dragAccumulator = 0;
+
     // Callbacks
     this.onLockChange = null;
     this.onToggleHUD = null;
     this.onToggleWorkbench = null;
+    this.onHoverChange = null;
+    this.onCycleComponent = null;
+    this.onTuneDelta = null;
+    this.onActivateAvionics = null;
     this.isWorkbenchOpen = false;
 
     // Spawn camera position: 5m facing the satellite dish and solar panels
@@ -120,18 +134,34 @@ export class SpacewalkController {
     });
 
     // Mouse movement
-    let isMouseDown = false;
     let prevMouseX = 0;
     let prevMouseY = 0;
 
     window.addEventListener('mousedown', (e) => {
-      isMouseDown = true;
+      this.isMouseDown = true;
       prevMouseX = e.clientX;
       prevMouseY = e.clientY;
+
+      if (this.isLocked && this.hoveredObject) {
+        if (this.hoveredObject.userData.isAvionics) {
+          if (this.onActivateAvionics) this.onActivateAvionics();
+        } else if (this.hoveredObject.userData.tuneParam) {
+          this.isDraggingTune = true;
+          this.activeTuneParam = this.hoveredObject.userData.tuneParam;
+          this.activeTuneUnit = this.hoveredObject.userData.tuneUnit || '';
+          this.dragAccumulator = 0;
+          if (this.onDragStateChange) this.onDragStateChange(true, this.hoveredObject.userData);
+        }
+      }
     });
 
     window.addEventListener('mouseup', () => {
-      isMouseDown = false;
+      this.isMouseDown = false;
+      if (this.isDraggingTune) {
+        this.isDraggingTune = false;
+        this.activeTuneParam = null;
+        if (this.onDragStateChange) this.onDragStateChange(false, null);
+      }
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -141,7 +171,7 @@ export class SpacewalkController {
       if (this.isLocked) {
         movementX = e.movementX || 0;
         movementY = e.movementY || 0;
-      } else if (isMouseDown) {
+      } else if (this.isMouseDown) {
         // Fallback drag-to-look when pointer isn't locked
         movementX = e.clientX - prevMouseX;
         movementY = e.clientY - prevMouseY;
@@ -149,6 +179,20 @@ export class SpacewalkController {
         prevMouseY = e.clientY;
       } else {
         return;
+      }
+
+      // If actively dragging a 3D component parameter
+      if (this.isDraggingTune && this.activeTuneParam) {
+        const deltaDrag = -movementY * 0.45 + movementX * 0.2;
+        this.dragAccumulator += Math.abs(deltaDrag);
+        if (this.dragAccumulator > 6) {
+          this.dragAccumulator = 0;
+          spaceAudio.playRatchetClick();
+        }
+        if (this.onTuneDelta) {
+          this.onTuneDelta(this.activeTuneParam, deltaDrag);
+        }
+        return; // suppress camera turn while precisely tuning 3D part
       }
 
       this.yaw -= movementX * this.lookSensitivity;
@@ -197,6 +241,15 @@ export class SpacewalkController {
           if (this.onToggleHUD) this.onToggleHUD();
           break;
         case 'KeyE':
+          e.preventDefault();
+          if (this.hoveredObject) {
+            if (this.hoveredObject.userData.isAvionics) {
+              if (this.onActivateAvionics) this.onActivateAvionics();
+            } else if (this.hoveredObject.userData.category) {
+              if (this.onCycleComponent) this.onCycleComponent(this.hoveredObject.userData.category);
+            }
+          }
+          break;
         case 'Tab':
           e.preventDefault();
           if (this.onToggleWorkbench) this.onToggleWorkbench();
@@ -280,6 +333,37 @@ export class SpacewalkController {
       this.camera.position.lerp(pushOut, 0.2);
       this.velocity.multiplyScalar(0.5); // absorb impact
     }
+
+    // Raycast for interactive 3D components in front of the astronaut
+    if (this.interactiveObjects && this.interactiveObjects.length > 0) {
+      const dir = new THREE.Vector3();
+      this.camera.getWorldDirection(dir);
+      this.raycaster.set(this.camera.position, dir);
+
+      const hits = this.raycaster.intersectObjects(this.interactiveObjects, false);
+      const validHit = hits.find(h => h.distance <= 5.8);
+
+      if (validHit) {
+        if (this.hoveredObject !== validHit.object) {
+          this.hoveredObject = validHit.object;
+          spaceAudio.playHoverPing();
+          if (this.onHoverChange) {
+            this.onHoverChange(this.hoveredObject);
+          }
+        }
+      } else {
+        if (this.hoveredObject && !this.isDraggingTune) {
+          this.hoveredObject = null;
+          if (this.onHoverChange) {
+            this.onHoverChange(null);
+          }
+        }
+      }
+    }
+  }
+
+  setInteractiveObjects(objects) {
+    this.interactiveObjects = objects || [];
   }
 
   getSpeed() {

@@ -24,6 +24,24 @@
     <div class="reticle-corner reticle-br"></div>
   </div>
 
+  <!-- In-World EVA Contextual Prompt (Dynamic Raycast HUD) -->
+  <div id="eva-prompt" class="eva-prompt-container" style="display: none;">
+    <div class="eva-prompt-header">
+      <span id="eva-prompt-badge" class="eva-badge">SUBSYSTEM</span>
+      <span id="eva-prompt-title" class="eva-title">SOLAR ARRAY MOUNT</span>
+    </div>
+    <div class="eva-actions-row">
+      <div id="eva-action-swap" class="eva-action-pill">
+        <span class="key-badge">E</span>
+        <span id="eva-action-swap-text">SWAP MODULE</span>
+      </div>
+      <div id="eva-action-drag" class="eva-action-pill">
+        <span class="key-badge mouse-badge">HOLD CLICK + DRAG</span>
+        <span id="eva-action-drag-text">ADJUST TILT</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Astronaut Helmet Visor HUD -->
   <div id="visor-hud">
     <!-- Header Telemetry Panels -->
@@ -45,20 +63,63 @@
         </div>
       </div>
 
-      <!-- EVA Suit Status -->
-      <div class="hud-panel">
-        <div class="hud-title">EVA SUIT TELEMETRY</div>
-        <div class="telemetry-row">
-          <span>RCS THRUSTERS:</span>
-          <span class="telemetry-value nominal">NOMINAL</span>
+      <!-- Real-Time Mission Equilibrium Tracker -->
+      <div id="mission-tracker" class="hud-panel tracker-panel">
+        <div class="tracker-header">
+          <div class="tracker-badge">ACTIVE MISSION</div>
+          <div id="tracker-mission-title" class="tracker-title">Mission 1: Earth Climate Monitor</div>
         </div>
-        <div class="telemetry-row">
-          <span>OXYGEN PRESSURE:</span>
-          <span class="telemetry-value nominal">101.3 kPa</span>
+
+        <div class="gauge-rows">
+          <div class="gauge-item" id="gauge-power">
+            <div class="gauge-label">
+              <span>⚡ NET POWER</span>
+              <span id="val-net-power" class="gauge-val">+180 W</span>
+            </div>
+            <div class="gauge-track">
+              <div id="bar-power" class="gauge-fill"></div>
+              <div class="gauge-target-mark" style="left: 45%;"></div>
+            </div>
+          </div>
+
+          <div class="gauge-item" id="gauge-data">
+            <div class="gauge-label">
+              <span>📡 DATA RATE</span>
+              <span id="val-data-rate" class="gauge-val">700 Mbps</span>
+            </div>
+            <div class="gauge-track">
+              <div id="bar-data" class="gauge-fill"></div>
+              <div class="gauge-target-mark" style="left: 50%;"></div>
+            </div>
+          </div>
+
+          <div class="gauge-item" id="gauge-mass">
+            <div class="gauge-label">
+              <span>⚖️ TOTAL MASS</span>
+              <span id="val-total-mass" class="gauge-val">535 kg</span>
+            </div>
+            <div class="gauge-track">
+              <div id="bar-mass" class="gauge-fill"></div>
+              <div class="gauge-target-mark" style="left: 65%;"></div>
+            </div>
+          </div>
+
+          <div class="gauge-item" id="gauge-heat">
+            <div class="gauge-label">
+              <span>🔥 HEAT LOAD</span>
+              <span id="val-heat-load" class="gauge-val">320 W</span>
+            </div>
+            <div class="gauge-track">
+              <div id="bar-heat" class="gauge-fill"></div>
+              <div class="gauge-target-mark" style="left: 55%;"></div>
+            </div>
+          </div>
         </div>
-        <div class="telemetry-row">
-          <span>AUDIO COMMS:</span>
-          <span id="hud-audio-status" class="telemetry-value nominal">ONLINE</span>
+
+        <!-- Equilibrium Launch Indicator -->
+        <div id="equilibrium-banner" class="equilibrium-status warning">
+          <span class="status-dot"></span>
+          <span id="equilibrium-text">SUBSYSTEM BALANCING IN PROGRESS</span>
         </div>
       </div>
     </div>
@@ -67,23 +128,23 @@
     <div class="hud-footer">
       <!-- Quick Flight Controls Help Card -->
       <div class="hud-panel controls-card">
-        <div class="hud-title">FLIGHT CONTROLS</div>
+        <div class="hud-title">EVA CONTROLS</div>
         <div class="telemetry-row">
           <span><span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span
               class="key-badge">D</span></span>
-          <span>Forward / Strafe</span>
+          <span>Thrusters / Strafe</span>
         </div>
         <div class="telemetry-row">
           <span><span class="key-badge">SPACE</span> / <span class="key-badge">SHIFT</span></span>
           <span>Ascend / Descend</span>
         </div>
         <div class="telemetry-row">
-          <span><span class="key-badge">MOUSE</span></span>
-          <span>Pitch & Yaw Look</span>
+          <span><span class="key-badge">E</span> on part</span>
+          <span>Swap Subsystem Module</span>
         </div>
         <div class="telemetry-row">
-          <span><span class="key-badge">E</span> / <span class="key-badge">TAB</span></span>
-          <span>Customize Satellite</span>
+          <span><span class="key-badge">CLICK + DRAG</span></span>
+          <span>Physical 3D Angle & Louver Tuning</span>
         </div>
         <div class="telemetry-row">
           <span><span class="key-badge">H</span> / <span class="key-badge">M</span></span>
@@ -97,21 +158,24 @@
         <div class="telemetry-row">
           <span id="hud-coords" class="telemetry-value">X: 0.0 Y: 0.5 Z: 5.2</span>
         </div>
+        <div class="telemetry-row">
+          <span>AVIONICS:</span>
+          <span id="hud-avionics-status" class="telemetry-value">STANDBY</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Floating Proximity Interaction Prompt -->
-  <div id="interact-prompt" style="display: none;">
-    <span class="key-badge">E</span> or <span class="key-badge">TAB</span>
-    <span>OPEN ENGINEERING WORKBENCH</span>
+  <!-- Cinematic Mission Victory Banner -->
+  <div id="launch-modal" style="display: none;">
+    <div class="modal-box launch-box">
+      <div class="launch-icon">🛰️</div>
+      <div class="modal-title" id="launch-modal-title">MISSION COMPLETE</div>
+      <div class="modal-subtitle" id="launch-modal-desc">TELEMETRY SYNCHRONIZED WITH EARTH ORBITAL GROUND STATION</div>
+      <div class="launch-metrics-summary" id="launch-metrics-summary"></div>
+      <button id="next-mission-btn" class="modal-btn">PROCEED TO NEXT ORBITAL SCENARIO</button>
+    </div>
   </div>
-
-  <!-- Orbital Customization Workbench (Split-Screen Panel) -->
-  <div id="workbench-panel"></div>
-
-  <!-- Victory Mission Modal -->
-  <div id="victory-modal"></div>
 
   <!-- Click to Start / Pointer Lock Overlay -->
   <div id="lock-prompt">

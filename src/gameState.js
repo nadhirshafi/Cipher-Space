@@ -212,6 +212,36 @@ class GameStateManager {
     }
   }
 
+  cycleComponent(category) {
+    if (!this.loadout[category] || !PARTS_CATALOG[category]) return null;
+    const parts = Object.keys(PARTS_CATALOG[category]);
+    const currentIdx = parts.indexOf(this.loadout[category]);
+    const nextIdx = (currentIdx + 1) % parts.length;
+    const nextPartId = parts[nextIdx];
+    this.setComponent(category, nextPartId);
+    return PARTS_CATALOG[category][nextPartId];
+  }
+
+  adjustTuningDelta(parameter, delta) {
+    if (!(parameter in this.tuning)) return;
+    if (parameter === 'solarTilt') {
+      this.tuning.solarTilt = Math.max(0, Math.min(90, Math.round(this.tuning.solarTilt + delta)));
+    } else if (parameter === 'commsPower') {
+      this.tuning.commsPower = Math.max(20, Math.min(200, Math.round(this.tuning.commsPower + delta)));
+    } else if (parameter === 'radiatorLouvers') {
+      this.tuning.radiatorLouvers = Math.max(0, Math.min(100, Math.round(this.tuning.radiatorLouvers + delta)));
+    } else if (parameter === 'sensorRate') {
+      this.tuning.sensorRate = Math.max(25, Math.min(100, Math.round(this.tuning.sensorRate + delta)));
+    }
+    if (this.onStateChange) this.onStateChange();
+    return this.tuning[parameter];
+  }
+
+  getComponentData(category) {
+    if (!this.loadout[category] || !PARTS_CATALOG[category]) return null;
+    return PARTS_CATALOG[category][this.loadout[category]];
+  }
+
   setTuning(parameter, value) {
     if (parameter in this.tuning) {
       this.tuning[parameter] = Number(value);

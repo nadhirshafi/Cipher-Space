@@ -203,6 +203,104 @@ class SpaceAudioEngine {
     noise.stop(now + 0.22);
   }
 
+  playRatchetClick() {
+    if (!this.initialized && !this.ctx) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400 + Math.random() * 300, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.025);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.035);
+  }
+
+  playServoSound() {
+    if (!this.initialized && !this.ctx) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.linearRampToValueAtTime(440, now + 0.06);
+    osc.frequency.linearRampToValueAtTime(380, now + 0.1);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, now);
+
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
+
+  playHoverPing() {
+    if (!this.initialized && !this.ctx) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.05);
+
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.065);
+  }
+
+  playAvionicsLaunchSound() {
+    if (!this.initialized && !this.ctx) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+
+    // Power up whoosh
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.8);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 1.25);
+
+    // Followed by celebratory fanfare
+    setTimeout(() => {
+      this.playMissionSuccess();
+    }, 700);
+  }
+
   playMissionSuccess() {
     if (!this.initialized && !this.ctx) this.init();
     if (!this.ctx || this.isMuted) return;

@@ -4,7 +4,7 @@ An interactive 3D WebGL space exploration and engineering puzzle game built with
 
 ---
 
-## 🎮 Flight & Engineering Controls
+## 🎮 In-World EVA Spacewalk & Engineering Controls
 
 | Control | Action |
 | :--- | :--- |
@@ -13,10 +13,13 @@ An interactive 3D WebGL space exploration and engineering puzzle game built with
 | **SPACE** / **SHIFT** | Ascend / Descend |
 | **MOUSE** | 360° Free Look (Pitch & Yaw) |
 | **CLICK** | Lock Cursor & Engage Zero-G Flight |
-| **E** or **TAB** | **Toggle Orbital Customization Workbench** |
-| **ESC** | Release Cursor / Pause Flight |
+| **RETICLE HOVER** | Aim crosshair at any component within EVA range (< 4m) for contextual 3D targeting brackets |
+| **E (on component)** | **Cycle & Snap Subsystem Module** directly in 3D space with magnetic clamp audio |
+| **HOLD CLICK & DRAG** | **Physically Manipulate 3D Component**: Tilt solar panels, angle radiator louvers, tune comms |
+| **CLICK (on Avionics)** | **Trigger Orbital Launch Sequence** when all 4 equilibrium gauges are green |
 | **H** | Toggle Helmet Visor HUD Display |
 | **M** | Toggle Sound FX & Cosmic Ambience |
+| **ESC** | Release Cursor / Pause Flight |
 
 ---
 
