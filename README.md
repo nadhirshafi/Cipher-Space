@@ -1,10 +1,21 @@
-# CIPHER SPACE — Interactive Satellite Engineering & Spacewalk Game
+# CIPHER SPACE — 4-Player Co-Op Orbital Spacewalk & Engineering Game
 
-An interactive 3D WebGL space exploration and engineering puzzle game built with **Three.js** and **Vite**. You are an astronaut in orbit around Earth, tasked with replacing, customizing, and balancing modular satellite subsystems (**SAT-ALPHA 01**) to achieve mission equilibrium across progressive orbital scenarios.
+An interactive 3D WebGL space exploration and engineering puzzle game built with **Three.js**, **Vite**, and **Node.js WebSockets**. You and up to 3 crew members are astronauts on an orbital spacewalk around Earth, tasked with replacing, tuning, and balancing modular satellite subsystems (**SAT-ALPHA 01**) to achieve mission equilibrium across progressive orbital scenarios.
 
 ---
 
-## 🎮 In-World EVA Spacewalk & Engineering Controls
+## 👨‍🚀 4-Player Specialist Crew Roles
+
+| Role | Subsystems Owned | Role Responsibilities |
+| :--- | :--- | :--- |
+| ⚡ **Power Engineer** | Solar Wings, Hex Array, RTG Core, Solar Tilt | Maximize net positive wattage and solar alignment relative to the Sun. |
+| 📡 **Comms Officer** | Parabolic Dish, Phased Array, Laser Uplink, Comms Boost | Establish high-bandwidth orbital downlinks without power bottlenecks. |
+| 🔥 **Thermal Specialist** | Mylar Bus, Titanium Exo, Carbon Hex, Radiator Louvers | Angle chassis louvers to shed heat into deep space and prevent overheating. |
+| 🔬 **Payload Commander** | Earth Camera, Radar Boom, Spectrometer, Avionics Switch | Calibrate sensor duty cycles and authorize the final orbital launch. |
+
+---
+
+## 🎮 In-World Spacewalk & Crew Controls
 
 | Control | Action |
 | :--- | :--- |
@@ -13,10 +24,12 @@ An interactive 3D WebGL space exploration and engineering puzzle game built with
 | **SPACE** / **SHIFT** | Ascend / Descend |
 | **MOUSE** | 360° Free Look (Pitch & Yaw) |
 | **CLICK** | Lock Cursor & Engage Zero-G Flight |
-| **RETICLE HOVER** | Aim crosshair at any component within EVA range (< 4m) for contextual 3D targeting brackets |
+| **RETICLE HOVER** | Aim crosshair at any component within EVA range (< 4m) for 3D targeting brackets |
 | **E (on component)** | **Cycle & Snap Subsystem Module** directly in 3D space with magnetic clamp audio |
 | **HOLD CLICK & DRAG** | **Physically Manipulate 3D Component**: Tilt solar panels, angle radiator louvers, tune comms |
-| **CLICK (on Avionics)** | **Trigger Orbital Launch Sequence** when all 4 equilibrium gauges are green |
+| **Q** | **Drop 3D Spatial Waypoint Ping** with audio blip for teammates |
+| **T** | **Open Tactical Radio Callout Wheel** (Broadcast status: Nominal, Cooling Needed, Ready) |
+| **CLICK (on Avionics)** | **Commander Authorizes Orbital Launch Sequence** when all 4 equilibrium gauges are green |
 | **H** | Toggle Helmet Visor HUD Display |
 | **M** | Toggle Sound FX & Cosmic Ambience |
 | **ESC** | Release Cursor / Pause Flight |
@@ -75,11 +88,20 @@ When all 4 gauges enter the **Green Equilibrium Zone**, the **"VERIFY & LAUNCH M
 
 ## 🛠️ Development & Running
 
+### 1. Start the Multiplayer WebSocket Server
 ```bash
-# Start local development server
-npm run dev
-
-# Build for production
-npm run build
+npm run server
+# Runs on ws://localhost:3001
 ```
-Live server running at **[http://localhost:5173/](http://localhost:5173/)**.
+
+### 2. Start the Vite Frontend Client
+```bash
+npm run dev
+# Opens at http://localhost:5173/
+```
+
+### 3. Multiplayer Crew Sessions
+1. Click **"CREATE 4-PLAYER CREW"** to generate a 4-letter room code (e.g., `ORBT`).
+2. Click **"COPY INVITE LINK"** to share with up to 3 friends (`http://localhost:5173/?room=ORBT`).
+3. Each player selects their Specialist Role, clicks **"CONFIRM ROLE & READY"**, and countdown launches the team into orbit together!
+4. Or click **"SOLO SPACEWALK"** to play single-player offline anytime.

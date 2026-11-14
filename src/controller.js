@@ -240,6 +240,18 @@ export class SpacewalkController {
         case 'KeyH':
           if (this.onToggleHUD) this.onToggleHUD();
           break;
+        case 'KeyQ':
+          e.preventDefault();
+          if (this.onPingWaypoint) {
+            const dir = new THREE.Vector3();
+            this.camera.getWorldDirection(dir);
+            const pingPos = this.hoveredObject
+              ? this.hoveredObject.position.clone()
+              : this.camera.position.clone().add(dir.multiplyScalar(4.5));
+            const label = this.hoveredObject ? this.hoveredObject.userData.label : 'ORBITAL TARGET';
+            this.onPingWaypoint(pingPos, label);
+          }
+          break;
         case 'KeyE':
           e.preventDefault();
           if (this.hoveredObject) {

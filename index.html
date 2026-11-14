@@ -46,21 +46,26 @@
   <div id="visor-hud">
     <!-- Header Telemetry Panels -->
     <div class="hud-header">
-      <!-- Target Satellite Telemetry -->
-      <div class="hud-panel">
-        <div class="hud-title">TARGET: SAT-ALPHA 01</div>
-        <div class="telemetry-row">
-          <span>DISTANCE:</span>
-          <span id="hud-range" class="telemetry-value">5.00 m</span>
+      <!-- Target Satellite Telemetry & Crew Roster -->
+      <div class="hud-header-left">
+        <div class="hud-panel">
+          <div class="hud-title">TARGET: SAT-ALPHA 01</div>
+          <div class="telemetry-row">
+            <span>DISTANCE:</span>
+            <span id="hud-range" class="telemetry-value">5.00 m</span>
+          </div>
+          <div class="telemetry-row">
+            <span>REL VELOCITY:</span>
+            <span id="hud-speed" class="telemetry-value">0.00 m/s</span>
+          </div>
+          <div class="telemetry-row">
+            <span>TRANSPONDER:</span>
+            <span class="telemetry-value nominal">SYNCHRONIZED</span>
+          </div>
         </div>
-        <div class="telemetry-row">
-          <span>REL VELOCITY:</span>
-          <span id="hud-speed" class="telemetry-value">0.00 m/s</span>
-        </div>
-        <div class="telemetry-row">
-          <span>TRANSPONDER:</span>
-          <span class="telemetry-value nominal">SYNCHRONIZED</span>
-        </div>
+
+        <!-- 4-Player Crew Roster -->
+        <div id="visor-crew-roster" class="hud-panel crew-panel" style="margin-top: 10px;"></div>
       </div>
 
       <!-- Real-Time Mission Equilibrium Tracker -->
@@ -126,29 +131,39 @@
 
     <!-- Footer Panels -->
     <div class="hud-footer">
-      <!-- Quick Flight Controls Help Card -->
-      <div class="hud-panel controls-card">
-        <div class="hud-title">EVA CONTROLS</div>
-        <div class="telemetry-row">
-          <span><span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span
-              class="key-badge">D</span></span>
-          <span>Thrusters / Strafe</span>
-        </div>
-        <div class="telemetry-row">
-          <span><span class="key-badge">SPACE</span> / <span class="key-badge">SHIFT</span></span>
-          <span>Ascend / Descend</span>
-        </div>
-        <div class="telemetry-row">
-          <span><span class="key-badge">E</span> on part</span>
-          <span>Swap Subsystem Module</span>
-        </div>
-        <div class="telemetry-row">
-          <span><span class="key-badge">CLICK + DRAG</span></span>
-          <span>Physical 3D Angle & Louver Tuning</span>
-        </div>
-        <div class="telemetry-row">
-          <span><span class="key-badge">H</span> / <span class="key-badge">M</span></span>
-          <span>Toggle HUD / Mute Audio</span>
+      <!-- Left side: Radio Comms Log & Controls -->
+      <div class="hud-footer-left">
+        <!-- Visor Radio Log -->
+        <div id="visor-radio-log" class="hud-panel radio-log-panel"></div>
+
+        <!-- Quick Flight Controls Help Card -->
+        <div class="hud-panel controls-card" style="margin-top: 10px;">
+          <div class="hud-title">EVA CONTROLS</div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span
+                class="key-badge">D</span></span>
+            <span>Thrusters / Strafe</span>
+          </div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">SPACE</span> / <span class="key-badge">SHIFT</span></span>
+            <span>Ascend / Descend</span>
+          </div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">E</span> on part</span>
+            <span>Swap Subsystem Module</span>
+          </div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">CLICK + DRAG</span></span>
+            <span>Tune Angle & Louvers</span>
+          </div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">Q</span> / <span class="key-badge">T</span></span>
+            <span>Ping Waypoint / Team Radio</span>
+          </div>
+          <div class="telemetry-row">
+            <span><span class="key-badge">H</span> / <span class="key-badge">M</span></span>
+            <span>Toggle HUD / Mute Audio</span>
+          </div>
         </div>
       </div>
 
@@ -165,6 +180,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Quick Radio Callout Pop-up Menu -->
+  <div id="quick-radio-menu" class="quick-radio-popup" style="display: none;">
+    <div class="quick-radio-title">TACTICAL RADIO CALLOUTS [T]</div>
+    <div class="quick-radio-options">
+      <div><span class="key-badge">1</span> Power Generation Nominal</div>
+      <div><span class="key-badge">2</span> Thermal Warning / Need Cooling</div>
+      <div><span class="key-badge">3</span> Comms Bandwidth Synchronized</div>
+      <div><span class="key-badge">4</span> All Systems Ready for Launch!</div>
+    </div>
+  </div>
+
+  <!-- 4-Player Crew Lobby Modal -->
+  <div id="lobby-modal"></div>
 
   <!-- Cinematic Mission Victory Banner -->
   <div id="launch-modal" style="display: none;">
