@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import {
   createGoldFoilTexture,
   createSolarPanelTexture,
@@ -8,21 +10,20 @@ import { spaceAudio } from './audio.js';
 
 export function createSatellite() {
   const satelliteRoot = new THREE.Group();
-  satelliteRoot.name = 'SatelliteRoot';
+  satelliteRoot.name = 'SatelliteRoot_AIM';
 
-  // Shared Textures
+  // Shared Procedural Textures & Materials for Modularity
   const goldFoilTex = createGoldFoilTexture();
   const solarPanelTex = createSolarPanelTexture();
   const bumpTex = createBumpMap();
 
-  // Shared Materials
   const goldFoilMat = new THREE.MeshStandardMaterial({
     map: goldFoilTex,
     bumpMap: bumpTex,
     bumpScale: 0.05,
-    metalness: 0.88,
-    roughness: 0.28,
-    color: 0xffd700
+    metalness: 0.95,
+    roughness: 0.22,
+    color: 0xffb833
   });
 
   const titaniumMat = new THREE.MeshStandardMaterial({
@@ -64,11 +65,6 @@ export function createSatellite() {
     roughness: 0.2
   });
 
-  const cyanGlowMat = new THREE.MeshBasicMaterial({
-    color: 0x00e5ff
-  });
-
-  // Wireframe highlight material for blueprint snap
   const wireframeSnapMat = new THREE.MeshBasicMaterial({
     color: 0x00e5ff,
     wireframe: true,
@@ -76,7 +72,12 @@ export function createSatellite() {
     opacity: 0.8
   });
 
-  // Subsystem Slots
+  // Dedicated container for the 3D GLB Model
+  const aimModelGroup = new THREE.Group();
+  aimModelGroup.name = 'AIM_GLB_ModelGroup';
+  satelliteRoot.add(aimModelGroup);
+
+  // Subsystem Modular Attachment Slots
   const chassisSlot = new THREE.Group();
   chassisSlot.name = 'Slot_Chassis';
   satelliteRoot.add(chassisSlot);
@@ -93,12 +94,11 @@ export function createSatellite() {
   scienceSlot.name = 'Slot_Science';
   satelliteRoot.add(scienceSlot);
 
-  // Dedicated Avionics & Orbital Uplink Terminal
   const avionicsSlot = new THREE.Group();
   avionicsSlot.name = 'Slot_Avionics';
   satelliteRoot.add(avionicsSlot);
 
-  // Diegetic Holographic Overlay Group
+  // Holographic FX & HUD Markers
   const hologramGroup = new THREE.Group();
   hologramGroup.name = 'Holograms';
   satelliteRoot.add(hologramGroup);
@@ -106,7 +106,8 @@ export function createSatellite() {
   // Interactive Target Colliders list for Raycaster
   const interactiveColliders = [];
 
-  // Louver reference for real-time rotation
+  // Live References
+  let aimGLBMesh = null;
   let activeLouvers = [];
   let activeSolarWings = [];
   let activeLaserEmitters = [];
@@ -119,6 +120,7 @@ export function createSatellite() {
   let isLaunchingSequence = false;
   let launchTimer = 0;
   let launchCallback = null;
+  let lastAppliedTuning = null;
 
   // Active target highlight frame
   let highlightBracket = null;
@@ -138,11 +140,96 @@ export function createSatellite() {
   let snapGhostMesh = null;
 
   // ==========================================
+  // LOAD REAL NASA AIM SATELLITE GLB MODEL
+  // ==========================================
+  function loadAIMModel() {
+    const dracoLoader = new DRACOLoader();
+    // Prefer local decompressed wasm decoder in public/draco/, fallback to Google CDN
+    dracoLoader.setDecoderPath('/draco/');
+
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+
+    const onModelLoaded = (gltf) => {
+      console.log('[SATELLITE] NASA AIM Satellite (Aeronomy of Ice in the Mesosphere) loaded.');
+      const model = gltf.scene;
+
+      // Realistic orbital dimensions (~7.5m wingspan, 3.1m height, 3.3m depth)
+      const scale = 0.18;
+      model.scale.set(scale, scale, scale);
+
+      // Center model origin ([3.52, 0.0, 3.2] in Blender coordinates)
+      model.position.set(-3.52 * scale, 0.0, -3.2 * scale);
+
+      // Enhance PBR materials and enable realistic space shadows
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          const enhance = (mat) => {
+            if (!mat) return;
+            const name = (mat.name || '').toLowerCase();
+            if (name.includes('gold')) {
+              mat.color.setHex(0xffb833);
+              mat.metalness = 0.96;
+              mat.roughness = 0.22;
+            } else if (name.includes('solar')) {
+              mat.metalness = 0.88;
+              mat.roughness = 0.14;
+            } else if (name.includes('silver') || name.includes('grey') || name.includes('bronze')) {
+              mat.metalness = 0.85;
+              mat.roughness = 0.25;
+            } else if (name.includes('lens') || name.includes('glass')) {
+              mat.roughness = 0.08;
+              mat.metalness = 0.1;
+              mat.transparent = true;
+              mat.opacity = 0.88;
+            } else if (name.includes('black')) {
+              mat.roughness = 0.85;
+              mat.metalness = 0.2;
+            }
+          };
+
+          if (Array.isArray(child.material)) {
+            child.material.forEach(enhance);
+          } else {
+            enhance(child.material);
+          }
+        }
+      });
+
+      aimGLBMesh = model;
+      aimModelGroup.add(model);
+
+      if (lastAppliedTuning) {
+        applyTuning(lastAppliedTuning);
+      }
+    };
+
+    gltfLoader.load(
+      '/models/aim.glb',
+      onModelLoaded,
+      undefined,
+      (err) => {
+        console.warn('[SATELLITE] Local Draco load failed, attempting Google CDN Draco decoder:', err);
+        const cdnDraco = new DRACOLoader();
+        cdnDraco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+        const fallbackLoader = new GLTFLoader();
+        fallbackLoader.setDRACOLoader(cdnDraco);
+        fallbackLoader.load('/models/aim.glb', onModelLoaded, undefined, (finalErr) => {
+          console.error('[SATELLITE] Failed to load AIM GLB model:', finalErr);
+        });
+      }
+    );
+  }
+
+  // ==========================================
   // BUILD AVIONICS TERMINAL & HOLOGRAPHIC RIG
   // ==========================================
   function buildAvionicsTerminal() {
     const termGroup = new THREE.Group();
-    termGroup.position.set(0, 0.75, 1.25);
+    termGroup.position.set(0, 0.75, 1.45);
 
     // Housing console
     const housingGeo = new THREE.BoxGeometry(0.7, 0.45, 0.22);
@@ -197,7 +284,7 @@ export function createSatellite() {
       interactive: true,
       category: 'avionics',
       label: 'AVIONICS MASTER TERMINAL',
-      subtext: 'ORBITAL VERIFICATION & LAUNCH INTERFACE',
+      subtext: 'AIM ORBITAL VERIFICATION & INSERTION INTERFACE',
       isAvionics: true
     };
     satelliteRoot.add(col);
@@ -205,14 +292,14 @@ export function createSatellite() {
   }
 
   function setupInteractiveColliders() {
-    // 1. Power collider (covers solar wing roots)
-    const powerColGeo = new THREE.BoxGeometry(7.5, 2.4, 1.2);
+    // 1. Power collider (covers AIM deployed solar array wings)
+    const powerColGeo = new THREE.BoxGeometry(8.2, 2.6, 1.4);
     const powerCol = new THREE.Mesh(powerColGeo, new THREE.MeshBasicMaterial({ visible: false }));
-    powerCol.position.set(0, 0, 0);
+    powerCol.position.set(0, -0.05, 1.1);
     powerCol.userData = {
       interactive: true,
       category: 'power',
-      label: 'SOLAR ARRAY & POWER BUS',
+      label: 'AIM SOLAR ARRAY & POWER BUS',
       tuneParam: 'solarTilt',
       tuneLabel: 'SOLAR PANEL TILT',
       tuneUnit: '°'
@@ -220,14 +307,14 @@ export function createSatellite() {
     satelliteRoot.add(powerCol);
     interactiveColliders.push(powerCol);
 
-    // 2. Comms collider (covers dish / antenna)
-    const commsColGeo = new THREE.BoxGeometry(2.4, 2.4, 2.0);
+    // 2. Comms collider (covers AIM S-band uplink & high-gain transponder)
+    const commsColGeo = new THREE.BoxGeometry(2.2, 2.2, 2.0);
     const commsCol = new THREE.Mesh(commsColGeo, new THREE.MeshBasicMaterial({ visible: false }));
-    commsCol.position.set(0, 0, 1.6);
+    commsCol.position.set(0, 0.8, 1.6);
     commsCol.userData = {
       interactive: true,
       category: 'comms',
-      label: 'HIGH-GAIN COMMS & RELAY',
+      label: 'AIM S-BAND COMMS & TELEMETRY',
       tuneParam: 'commsPower',
       tuneLabel: 'TRANSMITTER BOOST',
       tuneUnit: 'W'
@@ -235,14 +322,14 @@ export function createSatellite() {
     satelliteRoot.add(commsCol);
     interactiveColliders.push(commsCol);
 
-    // 3. Chassis collider (covers bus & louvers)
-    const chassisColGeo = new THREE.BoxGeometry(3.6, 4.0, 2.8);
+    // 3. Chassis collider (covers central LEOStar-2 bus & thermal radiators)
+    const chassisColGeo = new THREE.BoxGeometry(3.0, 2.6, 2.8);
     const chassisCol = new THREE.Mesh(chassisColGeo, new THREE.MeshBasicMaterial({ visible: false }));
-    chassisCol.position.set(0, 0, 0);
+    chassisCol.position.set(0, -0.45, -0.58);
     chassisCol.userData = {
       interactive: true,
       category: 'chassis',
-      label: 'CHASSIS BUS & RADIATOR LOUVERS',
+      label: 'AIM BUS & RADIATOR LOUVERS',
       tuneParam: 'radiatorLouvers',
       tuneLabel: 'RADIATOR LOUVER APERTURE',
       tuneUnit: '%'
@@ -250,14 +337,14 @@ export function createSatellite() {
     satelliteRoot.add(chassisCol);
     interactiveColliders.push(chassisCol);
 
-    // 4. Science collider (covers payload underneath)
-    const sciColGeo = new THREE.BoxGeometry(4.2, 2.2, 2.0);
+    // 4. Science collider (covers upper science deck: CIPS UV Camera, SOFIE Spectrometer, CDE)
+    const sciColGeo = new THREE.BoxGeometry(2.6, 2.0, 2.0);
     const sciCol = new THREE.Mesh(sciColGeo, new THREE.MeshBasicMaterial({ visible: false }));
-    sciCol.position.set(0, -2.2, 0);
+    sciCol.position.set(0, 1.1, -0.2);
     sciCol.userData = {
       interactive: true,
       category: 'science',
-      label: 'SCIENCE INSTRUMENT PAYLOAD',
+      label: 'AIM SCIENCE PAYLOAD (CIPS / SOFIE / CDE)',
       tuneParam: 'sensorRate',
       tuneLabel: 'SENSOR DUTY CYCLE',
       tuneUnit: '%'
@@ -267,7 +354,7 @@ export function createSatellite() {
   }
 
   function setupHolographicFX() {
-    // A. 3D In-World Target Highlighting Bracket (wireframe box that wraps around hovered part)
+    // 3D In-World Target Highlighting Bracket (wraps around hovered part)
     const bracketGeo = new THREE.BoxGeometry(1, 1, 1);
     const bracketMat = new THREE.MeshBasicMaterial({
       color: 0x00e5ff,
@@ -278,7 +365,7 @@ export function createSatellite() {
     highlightBracket = new THREE.Mesh(bracketGeo, bracketMat);
     hologramGroup.add(highlightBracket);
 
-    // B. Telemetry Launch Laser Beam
+    // Telemetry Launch Laser Beam
     const beamGeo = new THREE.CylinderGeometry(0.08, 0.45, 120, 16);
     const beamMat = new THREE.MeshBasicMaterial({
       color: 0x00f0ff,
@@ -290,12 +377,12 @@ export function createSatellite() {
     telemetryBeamMesh.position.set(0, -60, 1.8);
     hologramGroup.add(telemetryBeamMesh);
 
-    // C. 4 Cold-gas RCS thruster nozzles and burst cones
+    // 4 Cold-gas RCS thruster nozzles and burst cones
     const nozzlePositions = [
-      [-1.3, 1.8, 1.1],
-      [1.3, 1.8, 1.1],
-      [-1.3, -1.8, 1.1],
-      [1.3, -1.8, 1.1]
+      [-1.4, 1.4, 0.9],
+      [1.4, 1.4, 0.9],
+      [-1.4, -1.4, 0.9],
+      [1.4, -1.4, 0.9]
     ];
     nozzlePositions.forEach(pos => {
       const coneGeo = new THREE.ConeGeometry(0.18, 0.8, 12);
@@ -313,6 +400,7 @@ export function createSatellite() {
     });
   }
 
+  loadAIMModel();
   buildAvionicsTerminal();
   setupInteractiveColliders();
   setupHolographicFX();
@@ -326,7 +414,6 @@ export function createSatellite() {
       spaceAudio.playHydraulicLock();
     }
 
-    // Duplicate clone with wireframe for 0.4s snap flash
     try {
       const clone = targetGroup.clone(true);
       clone.traverse((child) => {
@@ -343,335 +430,210 @@ export function createSatellite() {
   }
 
   // ==========================================
-  // BUILDERS: CHASSIS MODULES
+  // MODULAR SUBSYSTEM BUILDERS
   // ==========================================
   function buildChassis(type) {
     activeLouvers = [];
     const group = new THREE.Group();
 
-    if (type === 'gold_mylar') {
-      // Classic Gold Mylar bus
-      const coreGeo = new THREE.BoxGeometry(2.4, 3.6, 2.2);
-      const core = new THREE.Mesh(coreGeo, goldFoilMat);
-      core.castShadow = true;
-      group.add(core);
+    if (type === 'titanium_exo') {
+      // Active Radiator Louver Panel
+      const louverPanel = new THREE.Group();
+      louverPanel.position.set(0, -0.45, -1.9);
 
-      // Titanium corner struts
-      const edgeGeo = new THREE.CylinderGeometry(0.04, 0.04, 3.6, 8);
-      [-1.2, 1.2].forEach(x => {
-        [-1.1, 1.1].forEach(z => {
-          const edge = new THREE.Mesh(edgeGeo, titaniumMat);
-          edge.position.set(x, 0, z);
-          group.add(edge);
-        });
+      const frameGeo = new THREE.BoxGeometry(2.2, 1.8, 0.1);
+      const frame = new THREE.Mesh(frameGeo, darkMetalMat);
+      louverPanel.add(frame);
+
+      // Louver slats
+      const slatGeo = new THREE.BoxGeometry(1.8, 0.04, 0.22);
+      for (let i = -4; i <= 4; i++) {
+        const slatPivot = new THREE.Group();
+        slatPivot.position.set(0, i * 0.18, 0.08);
+
+        const slatMesh = new THREE.Mesh(slatGeo, titaniumMat);
+        slatMesh.position.z = 0.1;
+        slatPivot.add(slatMesh);
+
+        louverPanel.add(slatPivot);
+        activeLouvers.push(slatPivot);
+      }
+      group.add(louverPanel);
+    } else if (type === 'carbon_hex') {
+      // Carbon Composite Truss Reinforcement
+      const trussGroup = new THREE.Group();
+      trussGroup.position.set(0, -0.45, -0.58);
+      const strutGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.8, 8);
+      [-1.3, 1.3].forEach(x => {
+        const strut = new THREE.Mesh(strutGeo, carbonMat);
+        strut.position.set(x, 0, -1.2);
+        trussGroup.add(strut);
       });
-
-      // Top & bottom decks
-      const deckGeo = new THREE.BoxGeometry(2.55, 0.15, 2.35);
-      const topDeck = new THREE.Mesh(deckGeo, whiteCeramicMat);
-      topDeck.position.y = 1.875;
-      group.add(topDeck);
-
-      const btmDeck = new THREE.Mesh(deckGeo, darkMetalMat);
-      btmDeck.position.y = -1.875;
-      group.add(btmDeck);
-
-    } else if (type === 'titanium_exo') {
-      // Heavy Titanium Armored Core with Active Louver Slats
-      const coreGeo = new THREE.BoxGeometry(2.6, 3.8, 2.4);
-      const core = new THREE.Mesh(coreGeo, darkMetalMat);
-      group.add(core);
-
-      // Heavy exo-cage armor plates
-      const plateGeo = new THREE.BoxGeometry(2.7, 3.6, 0.1);
-      const frontPlate = new THREE.Mesh(plateGeo, titaniumMat);
-      frontPlate.position.z = 1.22;
-      group.add(frontPlate);
-
-      const backPlate = new THREE.Mesh(plateGeo, titaniumMat);
-      backPlate.position.z = -1.22;
-      group.add(backPlate);
-
-      // Active Thermal Radiator Louvers on the sides
-      const sideOffsets = [-1.35, 1.35];
-      sideOffsets.forEach(xPos => {
-        const frameGeo = new THREE.BoxGeometry(0.1, 2.4, 1.6);
-        const frame = new THREE.Mesh(frameGeo, darkMetalMat);
-        frame.position.set(xPos, 0, 0);
-        group.add(frame);
-
-        // 6 adjustable louver slats per side
-        for (let l = 0; l < 6; l++) {
-          const louverGroup = new THREE.Group();
-          const posY = -0.9 + l * 0.36;
-          louverGroup.position.set(xPos, posY, 0);
-
-          const slatGeo = new THREE.BoxGeometry(0.06, 0.04, 1.45);
-          const slat = new THREE.Mesh(slatGeo, titaniumMat);
-          louverGroup.add(slat);
-
-          group.add(louverGroup);
-          activeLouvers.push(louverGroup);
-        }
-      });
-
-    } else {
-      // Carbon-Composite Hex Bus
-      const hexGeo = new THREE.CylinderGeometry(1.6, 1.6, 3.6, 6);
-      const hexBus = new THREE.Mesh(hexGeo, carbonMat);
-      hexBus.castShadow = true;
-      group.add(hexBus);
-
-      // Gold reinforcement bands
-      [-1.4, 0, 1.4].forEach(y => {
-        const ringGeo = new THREE.CylinderGeometry(1.64, 1.64, 0.12, 6);
-        const ring = new THREE.Mesh(ringGeo, goldTrimMat);
-        ring.position.y = y;
-        group.add(ring);
-      });
+      group.add(trussGroup);
     }
-
-    // Add navigation beacons to chassis
-    addBeacons(group);
 
     return group;
   }
 
-  function addBeacons(group) {
-    // Red port nav light
-    const redLightMat = new THREE.MeshBasicMaterial({ color: 0xff1133 });
-    const navGeo = new THREE.SphereGeometry(0.08, 12, 12);
-    const redMesh = new THREE.Mesh(navGeo, redLightMat);
-    redMesh.position.set(-1.3, 1.9, 0);
-    group.add(redMesh);
-
-    // Green starboard nav light
-    const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
-    const greenMesh = new THREE.Mesh(navGeo, greenLightMat);
-    greenMesh.position.set(1.3, 1.9, 0);
-    group.add(greenMesh);
-
-    // White strobe
-    const strobeLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const strobeMesh = new THREE.Mesh(navGeo, strobeLightMat);
-    strobeMesh.position.set(0, 2.1, 0);
-    group.add(strobeMesh);
-  }
-
-  // ==========================================
-  // BUILDERS: POWER MODULES
-  // ==========================================
   function buildPower(type) {
     activeSolarWings = [];
     const group = new THREE.Group();
 
-    if (type === 'dual_wing') {
-      // Compact Dual-Panel Wings (2 panels per side)
-      [-1, 1].forEach(dir => {
-        const wingMount = new THREE.Group();
+    // Secondary Articulated Solar Wing Rigs that respond to Tilt
+    const wingPivotL = new THREE.Group();
+    wingPivotL.position.set(-3.8, -0.05, 1.1);
 
-        const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.0, 12), titaniumMat);
-        boom.rotation.z = Math.PI / 2;
-        boom.position.x = dir * 0.5;
-        wingMount.add(boom);
+    const wingPivotR = new THREE.Group();
+    wingPivotR.position.set(3.8, -0.05, 1.1);
 
-        // Articulated panels
-        const panelPivot = new THREE.Group();
-        panelPivot.position.x = dir * 1.0;
+    if (type === 'hex_array') {
+      // High-efficiency extended photovoltaic wings
+      const panelGeo = new THREE.BoxGeometry(2.0, 1.2, 0.04);
+      const wingL = new THREE.Mesh(panelGeo, solarPanelMat);
+      wingL.position.x = -1.1;
+      wingPivotL.add(wingL);
 
-        for (let p = 0; p < 2; p++) {
-          const panelGeo = new THREE.BoxGeometry(1.4, 1.5, 0.05);
-          const panel = new THREE.Mesh(panelGeo, solarPanelMat);
-          panel.position.x = dir * (0.8 + p * 1.5);
-          panel.castShadow = true;
-          panelPivot.add(panel);
-        }
+      const wingR = new THREE.Mesh(panelGeo, solarPanelMat);
+      wingR.position.x = 1.1;
+      wingPivotR.add(wingR);
 
-        wingMount.add(panelPivot);
-        activeSolarWings.push(panelPivot);
-        group.add(wingMount);
-      });
-
-    } else if (type === 'hex_array') {
-      // Extended Hex-Panel Wings (3 panels per side, wider)
-      [-1, 1].forEach(dir => {
-        const wingMount = new THREE.Group();
-
-        const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 12), titaniumMat);
-        boom.rotation.z = Math.PI / 2;
-        boom.position.x = dir * 0.6;
-        wingMount.add(boom);
-
-        const panelPivot = new THREE.Group();
-        panelPivot.position.x = dir * 1.2;
-
-        for (let p = 0; p < 3; p++) {
-          const panelGeo = new THREE.BoxGeometry(1.6, 1.8, 0.06);
-          const panel = new THREE.Mesh(panelGeo, solarPanelMat);
-          panel.position.x = dir * (0.9 + p * 1.7);
-          panel.castShadow = true;
-          panelPivot.add(panel);
-        }
-
-        wingMount.add(panelPivot);
-        activeSolarWings.push(panelPivot);
-        group.add(wingMount);
-      });
-
-    } else {
-      // Nuclear RTG Cylindrical Generator
+      group.add(wingPivotL);
+      group.add(wingPivotR);
+      activeSolarWings.push(wingPivotL, wingPivotR);
+    } else if (type === 'nuclear_rtg') {
+      // RTG Core Cylinder mounted on aft boom
       const rtgGroup = new THREE.Group();
-      rtgGroup.position.set(0, 0, -1.6);
+      rtgGroup.position.set(0, -1.8, -1.2);
 
-      // Main cylindrical thermoelectric casing
-      const rtgBody = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 2.2, 24), darkMetalMat);
-      rtgBody.rotation.x = Math.PI / 2;
-      rtgGroup.add(rtgBody);
+      const cylGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 16);
+      const cyl = new THREE.Mesh(cylGeo, darkMetalMat);
+      rtgGroup.add(cyl);
 
-      // 8 radial cooling heat fins
-      for (let f = 0; f < 8; f++) {
-        const angle = (f * Math.PI * 2) / 8;
-        const finGeo = new THREE.BoxGeometry(0.04, 0.5, 2.0);
-        const fin = new THREE.Mesh(finGeo, titaniumMat);
-        fin.position.set(Math.cos(angle) * 0.75, Math.sin(angle) * 0.75, 0);
-        fin.rotation.z = angle;
-        fin.rotation.x = Math.PI / 2;
-        rtgGroup.add(fin);
-      }
-
-      // Hot core indicator glow
-      const rtgCoreGlow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0xff6600 }));
-      rtgCoreGlow.position.z = -1.1;
-      rtgGroup.add(rtgCoreGlow);
-
+      const ringGeo = new THREE.TorusGeometry(0.38, 0.03, 8, 24);
+      [-0.4, 0, 0.4].forEach(y => {
+        const ring = new THREE.Mesh(ringGeo, goldTrimMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = y;
+        rtgGroup.add(ring);
+      });
       group.add(rtgGroup);
     }
 
     return group;
   }
 
-  // ==========================================
-  // BUILDERS: COMMS MODULES
-  // ==========================================
   function buildComms(type) {
     activeLaserEmitters = [];
     const group = new THREE.Group();
-    group.position.set(0, 0, 1.3);
+    group.position.set(0, 0.8, 1.6);
 
     if (type === 'dish') {
-      // High-Gain Parabolic Dish
-      const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12), titaniumMat);
-      mount.rotation.x = Math.PI / 2;
-      mount.position.z = 0.2;
-      group.add(mount);
-
-      const dishPoints = [];
-      for (let i = 0; i <= 24; i++) {
-        const t = i / 24;
-        const r = t * 1.5;
-        const z = (r * r) * 0.22;
-        dishPoints.push(new THREE.Vector2(r, z));
-      }
-      const dishGeo = new THREE.LatheGeometry(dishPoints, 32);
-      const dish = new THREE.Mesh(dishGeo, whiteCeramicMat);
-      dish.rotation.x = -Math.PI / 2;
-      dish.position.z = 0.6;
-      group.add(dish);
+      // High-Gain S-Band Parabolic Reflector
+      const dishGroup = new THREE.Group();
+      const dishGeo = new THREE.SphereGeometry(0.75, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2.8);
+      const dishMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 0.85,
+        roughness: 0.15,
+        side: THREE.DoubleSide
+      });
+      const dish = new THREE.Mesh(dishGeo, dishMat);
+      dish.rotation.x = Math.PI;
+      dishGroup.add(dish);
 
       // Feed horn
-      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 16), goldTrimMat);
-      horn.rotation.x = Math.PI / 2;
-      horn.position.z = 1.3;
-      group.add(horn);
+      const hornGeo = new THREE.ConeGeometry(0.08, 0.45, 12);
+      const horn = new THREE.Mesh(hornGeo, goldTrimMat);
+      horn.position.z = 0.4;
+      dishGroup.add(horn);
 
+      group.add(dishGroup);
+      activeLaserEmitters.push(horn);
     } else if (type === 'phased_array') {
-      // Hexagonal Planar Phased Array Panel
-      const mount = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.6), darkMetalMat);
-      mount.position.z = 0.3;
-      group.add(mount);
+      // Planar Hex Phased Array
+      const arrayGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.08, 6);
+      const arrayMesh = new THREE.Mesh(arrayGeo, titaniumMat);
+      arrayMesh.rotation.x = Math.PI / 2;
+      group.add(arrayMesh);
+      activeLaserEmitters.push(arrayMesh);
+    } else if (type === 'laser_comm') {
+      // Optical Deep-Space Laser Turret
+      const turretGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.5, 16);
+      const turret = new THREE.Mesh(turretGeo, darkMetalMat);
+      turret.rotation.x = Math.PI / 2;
 
-      const arrayPanel = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.15, 6), darkMetalMat);
-      arrayPanel.rotation.x = Math.PI / 2;
-      arrayPanel.position.z = 0.7;
-      group.add(arrayPanel);
+      const lensGeo = new THREE.CircleGeometry(0.16, 16);
+      const lensMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+      const lens = new THREE.Mesh(lensGeo, lensMat);
+      lens.position.z = 0.26;
+      turret.add(lens);
 
-      // Glowing antenna elements grid
-      const gridMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-      for (let r = 0; r < 5; r++) {
-        for (let c = 0; c < 5; c++) {
-          const elem = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.04), gridMat);
-          elem.position.set(-0.48 + c * 0.24, -0.48 + r * 0.24, 0.79);
-          group.add(elem);
-          activeLaserEmitters.push(elem);
-        }
-      }
-
-    } else {
-      // Optical Laser Comm Transceiver Turrets
-      [-0.6, 0.6].forEach(x => {
-        const turret = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.7, 16), darkMetalMat);
-        turret.rotation.x = Math.PI / 2;
-        turret.position.set(x, 0.2, 0.5);
-        group.add(turret);
-
-        const lens = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), cyanGlowMat);
-        lens.position.set(x, 0.2, 0.86);
-        group.add(lens);
-        activeLaserEmitters.push(lens);
-      });
+      group.add(turret);
+      activeLaserEmitters.push(lens);
     }
 
     return group;
   }
 
-  // ==========================================
-  // BUILDERS: SCIENCE PAYLOAD MODULES
-  // ==========================================
   function buildScience(type) {
+    activeSensorPulseMesh = null;
     const group = new THREE.Group();
-    group.position.set(0, -1.9, 0); // mounted underneath
+    group.position.set(0, 1.1, -0.2);
 
     if (type === 'earth_cam') {
-      // Multispectral Earth Optical Camera
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.48, 1.1, 24), darkMetalMat);
-      barrel.position.y = -0.55;
-      group.add(barrel);
+      // CIPS Panoramic UV Cloud Imager Baffles & Lens
+      const camGroup = new THREE.Group();
+      const barrelGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.6, 24);
+      const barrel = new THREE.Mesh(barrelGeo, darkMetalMat);
+      camGroup.add(barrel);
 
-      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.36, 24), new THREE.MeshPhysicalMaterial({
-        color: 0x004488,
-        roughness: 0.05,
-        metalness: 0.9,
-        reflectivity: 1.0,
-        clearcoat: 1.0
-      }));
-      lens.rotation.x = Math.PI / 2;
-      lens.position.y = -1.11;
-      group.add(lens);
-      activeSensorPulseMesh = lens;
+      const lensGeo = new THREE.CircleGeometry(0.22, 24);
+      const lensMat = new THREE.MeshBasicMaterial({ color: 0x88ccff });
+      const lens = new THREE.Mesh(lensGeo, lensMat);
+      lens.position.y = 0.31;
+      lens.rotation.x = -Math.PI / 2;
+      camGroup.add(lens);
 
+      // Scanning Aperture Ring
+      const ringGeo = new THREE.RingGeometry(0.26, 0.32, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.y = 0.32;
+      ring.rotation.x = -Math.PI / 2;
+      camGroup.add(ring);
+
+      group.add(camGroup);
+      activeSensorPulseMesh = ring;
     } else if (type === 'sar_radar') {
-      // Synthetic Aperture Radar (SAR) Truss Boom
-      const boom = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.2, 0.5), titaniumMat);
-      boom.position.y = -0.4;
-      group.add(boom);
+      // SOFIE Solar Occultation Infrared Spectrometer
+      const sofieGroup = new THREE.Group();
+      const boomGeo = new THREE.BoxGeometry(0.3, 0.3, 1.4);
+      const boom = new THREE.Mesh(boomGeo, titaniumMat);
+      sofieGroup.add(boom);
 
-      const radarFace = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.1, 0.6), goldTrimMat);
-      radarFace.position.y = -0.52;
-      group.add(radarFace);
-      activeSensorPulseMesh = radarFace;
+      const sensorGeo = new THREE.SphereGeometry(0.18, 16, 16);
+      const sensorMat = new THREE.MeshBasicMaterial({ color: 0xffaa44 });
+      const sensor = new THREE.Mesh(sensorGeo, sensorMat);
+      sensor.position.z = 0.75;
+      sofieGroup.add(sensor);
 
-    } else {
-      // Deep-Space Spectrometer & Magnetometer Mast
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.2, 8), titaniumMat);
-      mast.position.y = -1.6;
-      group.add(mast);
+      group.add(sofieGroup);
+      activeSensorPulseMesh = sensor;
+    } else if (type === 'spectrometer') {
+      // CDE Cosmic Dust Experiment Detector Mast
+      const cdeGroup = new THREE.Group();
+      const mastGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.6, 8);
+      const mast = new THREE.Mesh(mastGeo, titaniumMat);
+      mast.position.y = 0.8;
+      cdeGroup.add(mast);
 
-      [-1.0, -2.0, -3.1].forEach(y => {
-        const pod = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), goldTrimMat);
-        pod.position.y = y;
-        group.add(pod);
-      });
-      activeSensorPulseMesh = mast;
+      const cupGeo = new THREE.CylinderGeometry(0.2, 0.08, 0.25, 12);
+      const cup = new THREE.Mesh(cupGeo, goldFoilMat);
+      cup.position.y = 1.65;
+      cdeGroup.add(cup);
+
+      group.add(cdeGroup);
+      activeSensorPulseMesh = cup;
     }
 
     return group;
@@ -727,12 +689,18 @@ export function createSatellite() {
 
   function applyTuning(tuning) {
     if (!tuning) return;
+    lastAppliedTuning = tuning;
 
     // A. Solar tilt: physically rotate solar wings in 3D
     const tiltRad = (tuning.solarTilt * Math.PI) / 180;
     activeSolarWings.forEach(wing => {
       wing.rotation.y = tiltRad;
     });
+
+    // If GLB model is loaded, also apply subtle tilt response to deployed panels
+    if (aimGLBMesh) {
+      aimGLBMesh.rotation.x = Math.sin(tiltRad) * 0.12;
+    }
 
     // B. Radiator louvers: physically angle louvers in 3D
     const louverRad = (tuning.radiatorLouvers / 100) * (Math.PI / 2.5);
@@ -743,10 +711,8 @@ export function createSatellite() {
     // C. Comms Power boost: adjust intensity / emissive color
     const powerRatio = tuning.commsPower / 200;
     activeLaserEmitters.forEach(emitter => {
-      if (emitter.material) {
-        if (emitter.material.color) {
-          emitter.material.color.setRGB(0, 0.7 + powerRatio * 0.3, 0.9 + powerRatio * 0.1);
-        }
+      if (emitter.material && emitter.material.color) {
+        emitter.material.color.setRGB(0, 0.7 + powerRatio * 0.3, 0.9 + powerRatio * 0.1);
       }
     });
   }
@@ -757,20 +723,20 @@ export function createSatellite() {
     activeHoveredCategory = cat;
 
     if (cat === 'power') {
-      highlightBracket.scale.set(7.6, 2.2, 0.8);
-      highlightBracket.position.set(0, 0, 0);
+      highlightBracket.scale.set(8.4, 2.8, 1.6);
+      highlightBracket.position.set(0, -0.05, 1.1);
     } else if (cat === 'comms') {
-      highlightBracket.scale.set(2.2, 2.2, 1.8);
-      highlightBracket.position.set(0, 0, 1.6);
+      highlightBracket.scale.set(2.4, 2.4, 2.2);
+      highlightBracket.position.set(0, 0.8, 1.6);
     } else if (cat === 'chassis') {
-      highlightBracket.scale.set(3.2, 3.8, 2.6);
-      highlightBracket.position.set(0, 0, 0);
+      highlightBracket.scale.set(3.2, 2.8, 3.0);
+      highlightBracket.position.set(0, -0.45, -0.58);
     } else if (cat === 'science') {
-      highlightBracket.scale.set(4.0, 2.0, 1.8);
-      highlightBracket.position.set(0, -2.2, 0);
+      highlightBracket.scale.set(2.8, 2.2, 2.2);
+      highlightBracket.position.set(0, 1.1, -0.2);
     } else if (cat === 'avionics') {
-      highlightBracket.scale.set(0.9, 0.65, 0.4);
-      highlightBracket.position.set(0, 0.75, 1.25);
+      highlightBracket.scale.set(1.1, 0.85, 0.65);
+      highlightBracket.position.set(0, 0.75, 1.45);
     }
 
     highlightBracket.material.opacity = 0.9;
@@ -817,7 +783,7 @@ export function createSatellite() {
     if (isLaunchingSequence) {
       launchTimer -= delta;
 
-      // Spin up satellite into operational orbit
+      // Spin up satellite into operational polar orbit
       satelliteRoot.rotation.y += delta * 0.6;
       satelliteRoot.rotation.z += delta * 0.15;
 
@@ -846,6 +812,14 @@ export function createSatellite() {
     } else {
       // Normal gentle orbital wobble
       satelliteRoot.rotation.y = Math.sin(elapsedTime * 0.08) * 0.03;
+    }
+
+    // Pulse sensor optical aperture if present
+    if (activeSensorPulseMesh && activeSensorPulseMesh.material) {
+      const pulse = 0.7 + Math.sin(elapsedTime * 8) * 0.3;
+      if (activeSensorPulseMesh.material.opacity !== undefined) {
+        activeSensorPulseMesh.material.opacity = pulse;
+      }
     }
 
     // Pulse Avionics ring

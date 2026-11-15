@@ -1,125 +1,126 @@
 /**
- * Game State, Parts Catalog, Economy Calculations, and Mission Scenarios.
+ * NASA AIM Satellite Game State, Parts Catalog, Economy Calculations, and Mission Scenarios.
+ * Aeronomy of Ice in the Mesosphere (AIM) - Polar Mesospheric Cloud & Space Science Expedition.
  */
 
 export const PARTS_CATALOG = {
   power: {
     dual_wing: {
       id: 'dual_wing',
-      name: 'Dual Solar Wings',
-      badge: 'SOLAR',
+      name: 'AIM GaAs Solar Wings',
+      badge: 'NASA AIM',
       baseGen: 550,
       mass: 120,
       heat: 50,
-      desc: 'Compact 2-panel articulated solar arrays with gold busbars.'
+      desc: 'NASA AIM baseline deployed Gallium Arsenide (GaAs) articulated solar array wings.'
     },
     hex_array: {
       id: 'hex_array',
-      name: 'Hex High-Output Array',
+      name: 'Hex Multi-Junction Array',
       badge: 'HIGH EFF',
       baseGen: 1050,
       mass: 260,
       heat: 130,
-      desc: 'Extended 6-panel high-efficiency silicon photovoltaic wings.'
+      desc: 'Extended 6-panel high-efficiency silicon photovoltaic wings for maximum sun tracking.'
     },
     nuclear_rtg: {
       id: 'nuclear_rtg',
-      name: 'Nuclear RTG Core',
+      name: 'Radioisotope RTG Cell',
       badge: 'ATOMIC',
       baseGen: 780,
       mass: 380,
       heat: 290,
-      desc: 'Radioisotope thermoelectric generator. Constant power regardless of Sun angle.'
+      desc: 'Radioisotope thermoelectric generator providing constant power during Earth eclipse.'
     }
   },
 
   comms: {
     dish: {
       id: 'dish',
-      name: 'Parabolic Dish',
-      badge: 'RF DISH',
+      name: 'AIM S-Band Parabolic Transponder',
+      badge: 'S-BAND',
       baseRate: 700,
       baseDraw: 180,
       mass: 140,
-      desc: 'Steerable high-gain parabolic reflector on a dual-axis gimbal arm.'
+      desc: 'NASA AIM baseline steerable S-band high-gain parabolic antenna for telemetry & science downlink.'
     },
     phased_array: {
       id: 'phased_array',
-      name: 'Hex Phased Array',
+      name: 'AIM Planar Phased Array',
       badge: 'PHASED',
       baseRate: 1600,
       baseDraw: 380,
       mass: 210,
-      desc: 'Electronically steered planar antenna with high packet bandwidth.'
+      desc: 'Electronically steered planar S-band antenna array with high packet throughput.'
     },
     laser_comm: {
       id: 'laser_comm',
-      name: 'Optical Laser Transceiver',
+      name: 'Optical Deep-Space Laser Beamer',
       badge: 'PHOTON',
       baseRate: 2600,
       baseDraw: 620,
       mass: 290,
-      desc: 'Twin coherent optical laser turrets for ultra-high-throughput data beaming.'
+      desc: 'Coherent optical laser transceiver for gigabit-rate atmospheric data beaming to ground stations.'
     }
   },
 
   chassis: {
     gold_mylar: {
       id: 'gold_mylar',
-      name: 'Mylar Gold Bus (Light)',
-      badge: 'LIGHTWEIGHT',
+      name: 'AIM LEOStar-2 Gold MLI Bus',
+      badge: 'NASA MLI',
       maxLoad: 800,
       heatShed: 450,
       mass: 180,
-      desc: 'Insulated thermal blanket bus with titanium edge struts. Ideal for lightweight missions.'
+      desc: 'NASA AIM Multi-Layer Insulation (MLI) gold blanket bus with titanium edge struts.'
     },
     titanium_exo: {
       id: 'titanium_exo',
-      name: 'Titanium Armored Exo-Core',
-      badge: 'HEAVY ARMOR',
+      name: 'Titanium Radiator Core',
+      badge: 'LOUVERS',
       maxLoad: 1600,
       heatShed: 1150,
       mass: 450,
-      desc: 'Reinforced heavy-duty framework equipped with active thermal radiator louvers.'
+      desc: 'Reinforced titanium framework equipped with active thermal radiator cooling louvers.'
     },
     carbon_hex: {
       id: 'carbon_hex',
-      name: 'Carbon-Composite Hex Bus',
+      name: 'Carbon-Composite Explorer Truss',
       badge: 'COMPOSITE',
       maxLoad: 1200,
       heatShed: 780,
       mass: 280,
-      desc: 'High-tensile carbon weave chassis offering high strength-to-weight balance.'
+      desc: 'High-tensile carbon weave chassis offering high strength-to-weight orbital balance.'
     }
   },
 
   science: {
     earth_cam: {
       id: 'earth_cam',
-      name: 'Multispectral Earth Camera',
-      badge: 'OPTICAL',
+      name: 'AIM CIPS UV Cloud Imager',
+      badge: 'CIPS (UV)',
       genRate: 450,
       baseDraw: 120,
       mass: 95,
-      desc: 'Cryo-cooled optical barrel camera for multispectral planetary observation.'
+      desc: 'Cloud Imaging and Particle Size (CIPS) 4-camera panoramic UV imager mapping polar mesospheric ice clouds.'
     },
     sar_radar: {
       id: 'sar_radar',
-      name: 'Synthetic Aperture Radar (SAR)',
-      badge: 'RADAR',
+      name: 'AIM SOFIE IR Spectrometer',
+      badge: 'SOFIE (IR)',
       genRate: 1350,
       baseDraw: 360,
       mass: 240,
-      desc: 'Deployable radar boom for topographic terrain mapping through cloud cover.'
+      desc: 'Solar Occultation For Ice Experiment (SOFIE) infrared spectrometer profiling upper atmospheric trace gases.'
     },
     spectrometer: {
       id: 'spectrometer',
-      name: 'Deep-Space Spectrometer',
-      badge: 'SENSORS',
+      name: 'AIM CDE Cosmic Dust Detector',
+      badge: 'CDE (DUST)',
       genRate: 850,
       baseDraw: 220,
       mass: 160,
-      desc: 'Long magnetometer mast and radiation sensor package for cosmic ray detection.'
+      desc: 'Cosmic Dust Experiment (CDE) detecting interplanetary dust particles that nucleate mesospheric clouds.'
     }
   }
 };
@@ -127,9 +128,9 @@ export const PARTS_CATALOG = {
 export const MISSION_SCENARIOS = [
   {
     id: 0,
-    title: 'Mission 1: Earth Climate Monitor',
-    code: 'ORBIT-CLIM-01',
-    description: 'Deploy a high-resolution orbital climate monitoring platform. Keep payload mass light while maintaining net positive power.',
+    title: 'Mission 1: Polar Mesospheric Cloud (PMC) Mapping',
+    code: 'AIM-PMC-01',
+    description: 'Deploy the NASA AIM satellite into a 600km Sun-synchronous orbit to map noctilucent ice clouds in the polar mesosphere with the CIPS UV camera.',
     targets: {
       minNetPower: 150,   // Watts
       minDataRate: 600,    // Mbps
@@ -139,9 +140,9 @@ export const MISSION_SCENARIOS = [
   },
   {
     id: 1,
-    title: 'Mission 2: Deep-Space Quantum Relay',
-    code: 'DEEP-RELAY-02',
-    description: 'Construct a high-bandwidth orbital data relay station. Requires high data throughput and robust thermal heat dissipation.',
+    title: 'Mission 2: SOFIE Solar Occultation Trace Gas Profiling',
+    code: 'AIM-SOFIE-02',
+    description: 'Align the SOFIE infrared spectrometer during sunrise and sunset limb occultations to measure water vapor, methane, ozone, and temperature.',
     targets: {
       minNetPower: 250,   // Watts
       minDataRate: 1500,   // Mbps
@@ -151,9 +152,9 @@ export const MISSION_SCENARIOS = [
   },
   {
     id: 2,
-    title: 'Mission 3: Solar Storm Hardening',
-    code: 'HELIOS-HARD-03',
-    description: 'Hardened satellite surviving coronal mass ejections. Requires heavy structural armor, large cooling louvers, and maximum power reserves.',
+    title: 'Mission 3: Interplanetary Cosmic Dust Nucleation Tracking',
+    code: 'AIM-CDE-03',
+    description: 'Calibrate the CDE cosmic dust detector to quantify extraterrestrial meteoric smoke particles that form the nucleation core of noctilucent ice.',
     targets: {
       minNetPower: 350,   // Watts
       minDataRate: 1000,   // Mbps
