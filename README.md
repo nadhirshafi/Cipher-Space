@@ -88,20 +88,17 @@ When all 4 gauges enter the **Green Equilibrium Zone**, the **"VERIFY & LAUNCH M
 
 ## 🛠️ Development & Running
 
-### 1. Start the Multiplayer WebSocket Server
-```bash
-npm run server
-# Runs on ws://localhost:3001
-```
-
-### 2. Start the Vite Frontend Client
+### 1. Start the Vite Frontend Client
 ```bash
 npm run dev
 # Opens at http://localhost:5173/
 ```
 
-### 3. Multiplayer Crew Sessions
-1. Click **"CREATE 4-PLAYER CREW"** to generate a 4-letter room code (e.g., `ORBT`).
-2. Click **"COPY INVITE LINK"** to share with up to 3 friends (`http://localhost:5173/?room=ORBT`).
-3. Each player selects their Specialist Role, clicks **"CONFIRM ROLE & READY"**, and countdown launches the team into orbit together!
-4. Or click **"SOLO SPACEWALK"** to play single-player offline anytime.
+### 2. Serverless WebRTC Multiplayer (Vercel & Local)
+Multiplayer is fully **serverless** using peer-to-peer WebRTC! It runs out-of-the-box on static hosting like **Vercel** with zero backend servers or ports:
+1. Open **[https://cipher-space.vercel.app/](https://cipher-space.vercel.app/)** or your local dev server.
+2. Click **"CREATE 4-PLAYER CREW"** to generate a 4-letter room code (e.g., `ORBT`).
+3. Click **"🔗 COPY INVITE LINK"** to share with up to 3 friends (`https://cipher-space.vercel.app/?room=ORBT`).
+4. Each player picks an open Specialist Role (**Power**, **Comms**, **Thermal**, or **Commander**).
+5. Click **"CONFIRM ROLE & READY"** to launch the team into orbit together!
+6. Or click **"SOLO SPACEWALK"** to play single-player offline anytime.

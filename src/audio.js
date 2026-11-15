@@ -38,8 +38,30 @@ class SpaceAudioEngine {
       this._setupThrusterSynth();
 
       this.initialized = true;
+
+      // Resume context as soon as user gestures
+      if (this.ctx.state === 'suspended') {
+        const resumeCtx = () => {
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          window.removeEventListener('pointerdown', resumeCtx);
+          window.removeEventListener('keydown', resumeCtx);
+        };
+        window.addEventListener('pointerdown', resumeCtx, { once: true });
+        window.addEventListener('keydown', resumeCtx, { once: true });
+      }
     } catch (e) {
       console.warn('Web Audio not supported or failed to initialize', e);
+    }
+  }
+
+  resume() {
+    if (!this.initialized) {
+      this.init();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
     }
   }
 
@@ -362,3 +384,14 @@ class SpaceAudioEngine {
 }
 
 export const spaceAudio = new SpaceAudioEngine();
+
+// Ensure audio context resumes on first user click or keypress
+if (typeof window !== 'undefined') {
+  const resumeOnFirstGesture = () => {
+    spaceAudio.resume();
+    window.removeEventListener('pointerdown', resumeOnFirstGesture);
+    window.removeEventListener('keydown', resumeOnFirstGesture);
+  };
+  window.addEventListener('pointerdown', resumeOnFirstGesture, { once: true });
+  window.addEventListener('keydown', resumeOnFirstGesture, { once: true });
+}

@@ -35,7 +35,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 
 // Controller & Visor HUD
 const controller = new SpacewalkController(camera, canvas);
@@ -298,14 +298,17 @@ window.addEventListener('resize', () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-// Render Loop
-const clock = new THREE.Clock();
+// Render Loop Timing
+let lastTime = performance.now();
+let totalElapsedTime = 0;
 
 function animate() {
   requestAnimationFrame(animate);
 
-  const delta = Math.min(clock.getDelta(), 0.1);
-  const elapsedTime = clock.getElapsedTime();
+  const now = performance.now();
+  const delta = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  totalElapsedTime += delta;
 
   // Free first-person spacewalk flight & raycasting
   controller.update(delta);
@@ -318,11 +321,11 @@ function animate() {
 
   // Update remote astronauts in 3D
   remoteAvatars.forEach(avatar => {
-    avatar.update(delta, elapsedTime);
+    avatar.update(delta, totalElapsedTime);
   });
 
   // Update Scene Elements & HUDs
-  satellite.update(delta, elapsedTime);
+  satellite.update(delta, totalElapsedTime);
   earthEnv.update(delta);
   hud.update(controller, satellite.getCenterPosition());
   multiplayerHud.update(delta, camera.position);
