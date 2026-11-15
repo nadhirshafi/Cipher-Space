@@ -125,6 +125,7 @@ export function createSatellite() {
   let activeHoveredCategory = null;
 
   // Track currently mounted parts
+  let isInitialLoad = true;
   let currentParts = {
     chassis: null,
     power: null,
@@ -316,12 +317,14 @@ export function createSatellite() {
   setupInteractiveColliders();
   setupHolographicFX();
 
-  function triggerSnapEffect(targetGroup) {
+  function triggerSnapEffect(targetGroup, playAudio = true) {
     if (snapGhostMesh) {
       satelliteRoot.remove(snapGhostMesh);
       snapGhostMesh = null;
     }
-    spaceAudio.playHydraulicLock();
+    if (playAudio) {
+      spaceAudio.playHydraulicLock();
+    }
 
     // Duplicate clone with wireframe for 0.4s snap flash
     try {
@@ -678,13 +681,15 @@ export function createSatellite() {
   // LOADOUT UPDATE HANDLER
   // ==========================================
   function updateLoadout(loadout, tuning) {
+    const playAudio = !isInitialLoad;
+
     // 1. Chassis
     if (currentParts.chassis !== loadout.chassis) {
       currentParts.chassis = loadout.chassis;
       chassisSlot.clear();
       const newChassis = buildChassis(loadout.chassis);
       chassisSlot.add(newChassis);
-      triggerSnapEffect(newChassis);
+      triggerSnapEffect(newChassis, playAudio);
     }
 
     // 2. Power
@@ -693,7 +698,7 @@ export function createSatellite() {
       powerSlot.clear();
       const newPower = buildPower(loadout.power);
       powerSlot.add(newPower);
-      triggerSnapEffect(newPower);
+      triggerSnapEffect(newPower, playAudio);
     }
 
     // 3. Comms
@@ -702,7 +707,7 @@ export function createSatellite() {
       commsSlot.clear();
       const newComms = buildComms(loadout.comms);
       commsSlot.add(newComms);
-      triggerSnapEffect(newComms);
+      triggerSnapEffect(newComms, playAudio);
     }
 
     // 4. Science
@@ -711,11 +716,13 @@ export function createSatellite() {
       scienceSlot.clear();
       const newScience = buildScience(loadout.science);
       scienceSlot.add(newScience);
-      triggerSnapEffect(newScience);
+      triggerSnapEffect(newScience, playAudio);
     }
 
     // Apply Live Tuning Sliders
     applyTuning(tuning);
+
+    isInitialLoad = false;
   }
 
   function applyTuning(tuning) {

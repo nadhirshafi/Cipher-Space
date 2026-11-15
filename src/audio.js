@@ -178,9 +178,17 @@ class SpaceAudioEngine {
     }
   }
 
+  _canPlay() {
+    if (!this.initialized || !this.ctx) return false;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+      return false;
+    }
+    return !this.isMuted;
+  }
+
   playHydraulicLock() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
 
@@ -226,8 +234,7 @@ class SpaceAudioEngine {
   }
 
   playRatchetClick() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -247,8 +254,7 @@ class SpaceAudioEngine {
   }
 
   playServoSound() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -275,8 +281,7 @@ class SpaceAudioEngine {
   }
 
   playHoverPing() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -296,8 +301,7 @@ class SpaceAudioEngine {
   }
 
   playAvionicsLaunchSound() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
 
@@ -324,8 +328,7 @@ class SpaceAudioEngine {
   }
 
   playMissionSuccess() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
     // Triumphant rising arpeggio chord (C5, E5, G5, C6)
@@ -350,8 +353,7 @@ class SpaceAudioEngine {
   }
 
   playClick() {
-    if (!this.initialized && !this.ctx) this.init();
-    if (!this.ctx || this.isMuted) return;
+    if (!this._canPlay()) return;
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();

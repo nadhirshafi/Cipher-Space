@@ -1,30 +1,28 @@
 /**
- * Serverless WebRTC Peer-to-Peer Networking Manager
- * Uses Trystero for decentralized, serverless matchmaking over public WebRTC signaling relays.
- * Works out-of-the-box on static hosts like Vercel with zero backend servers or ports!
+ * Client WebRTC Serverless P2P Networking & State Synchronization
+ * Uses decentralized WebRTC relays so multiplayer works seamlessly on Vercel,
+ * GitHub Pages, and local development with zero server deployment required.
  */
-
 import { joinRoom } from 'trystero';
-import { gameState } from './gameState.js';
 
 export class NetworkManager {
   constructor() {
-    this.room = null;
     this.isConnected = false;
-    this.selfId = 'ast_' + Math.random().toString(36).substring(2, 9);
+    this.selfId = 'ast_' + Math.random().toString(36).substring(2, 8);
     this.currentRoom = null;
+    this.trysteroRoom = null;
     this.localCallsign = '';
     this.localRole = 'power';
     this.isReady = false;
 
-    // Roster tracking: playerId -> playerData
-    this.playersMap = new Map();
+    // Peer mapping: peerId -> playerInfo
+    this.peerMap = new Map();
 
     // Throttled 20Hz transform sender
     this.lastTransformSent = 0;
     this.transformInterval = 50; // 50ms = 20 packets/sec
 
-    // Trystero Action Objects
+    // Trystero P2P Action handles
     this.actions = null;
 
     // Callbacks
@@ -43,107 +41,147 @@ export class NetworkManager {
   }
 
   joinRoom(roomCode, callsign, role) {
-    let code = (roomCode || '').toUpperCase().trim();
-    if (!code) {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      code = '';
-      for (let i = 0; i < 4; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-    }
-
-    this.localCallsign = callsign || `Astro-${Math.floor(100 + Math.random() * 900)}`;
+    this.localCallsign = callsign || `Astronaut-${Math.floor(100 + Math.random() * 900)}`;
     this.localRole = role || 'power';
     this.isReady = false;
 
-    // Leave any existing room
-    if (this.room) {
-      try { this.room.leave(); } catch (e) {}
-    }
-
-    this.playersMap.clear();
-
-    // Add self to playersMap
-    const selfData = {
-      id: this.selfId,
-      callsign: this.localCallsign,
-      role: this.localRole,
-      isReady: false,
-      transform: {
-        pos: [0, 0, 5.2],
-        rot: [0, 0, 0, 1],
-        thrusters: false
-      }
-    };
-    this.playersMap.set(this.selfId, selfData);
-
-    this.currentRoom = {
-      code,
-      players: [selfData],
-      satelliteState: {
-        loadout: { ...gameState.loadout },
-        tuning: { ...gameState.tuning }
-      },
-      scenarioIndex: gameState.currentScenarioIndex
-    };
-
-    console.log(`[P2P NETWORK] Joining serverless orbital room: ${code}`);
+    const code = (roomCode || this._generateCode()).toUpperCase().trim();
 
     try {
-      // Connect over curated high-uptime public WebRTC signaling relays
-      this.room = joinRoom({
-        appId: 'cipher-space-orbital-2026',
-        relayUrls: [
-          'wss://relay.damus.io',
-          'wss://nos.lol',
-          'wss://relay.primal.net',
-          'wss://relay.snort.social'
-        ]
-      }, code);
-
+      // Connect to serverless WebRTC room with Nostr/BitTorrent signaling
+      this.trysteroRoom = joinRoom(
+        { appId: 'cipher-space-orbital-2026' },
+        code
+      );
       this.isConnected = true;
-      this._setupRoomActions();
+
+      // Initialize room data
+      this.currentRoom = {
+        code,
+        players: [
+          {
+            id: this.selfId,
+            callsign: this.localCallsign,
+            role: this.localRole,
+            isReady: false
+          }
+        ]
+      };
+
+      this._setupActions();
 
       if (this.onRoomJoined) {
         this.onRoomJoined(this.currentRoom, this.selfId);
       }
-    } catch (err) {
-      console.warn('[P2P NETWORK] Failed to join room:', err);
-      if (this.onError) this.onError('Failed to initialize serverless P2P connection');
+
+      console.log(`[NETWORK P2P] Joined WebRTC orbital room: ${code} as ${this.localCallsign} (${this.selfId})`);
+    } catch (e) {
+      console.warn('[NETWORK P2P] Failed to join room:', e);
+      if (this.onError) this.onError('Unable to connect to orbital network');
     }
   }
 
-  _setupRoomActions() {
-    if (!this.room) return;
+  _generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let res = '';
+    for (let i = 0; i < 4; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+  }
 
-    // In Trystero, makeAction returns an object: { send, onReceive }
-    const rosterAction = this.room.makeAction('roster');
-    const transformAction = this.room.makeAction('transform');
-    const satelliteAction = this.room.makeAction('satellite');
-    const pingAction = this.room.makeAction('ping');
-    const radioAction = this.room.makeAction('radio');
-    const launchAction = this.room.makeAction('launch');
-    const advanceAction = this.room.makeAction('advance');
-    const syncAction = this.room.makeAction('sync');
+  _setupActions() {
+    if (!this.trysteroRoom) return;
+
+    // Create synchronized actions across WebRTC peers
+    const [sendTransform, getTransform] = this.trysteroRoom.makeAction('transform');
+    const [sendRoster, getRoster] = this.trysteroRoom.makeAction('roster');
+    const [sendSatellite, getSatellite] = this.trysteroRoom.makeAction('satellite');
+    const [sendPing, getPing] = this.trysteroRoom.makeAction('ping');
+    const [sendRadio, getRadio] = this.trysteroRoom.makeAction('radio');
+    const [sendAdvance, getAdvance] = this.trysteroRoom.makeAction('advance');
+    const [sendCountdown, getCountdown] = this.trysteroRoom.makeAction('countdown');
 
     this.actions = {
-      roster: rosterAction,
-      transform: transformAction,
-      satellite: satelliteAction,
-      ping: pingAction,
-      radio: radioAction,
-      launch: launchAction,
-      advance: advanceAction,
-      sync: syncAction
+      sendTransform,
+      sendRoster,
+      sendSatellite,
+      sendPing,
+      sendRadio,
+      sendAdvance,
+      sendCountdown
     };
 
-    // 1. Peer Joins Room
-    this.room.onPeerJoin((peerId) => {
-      console.log(`[P2P NETWORK] Peer discovered: ${peerId}`);
+    // 1. Peer Joins
+    this.trysteroRoom.onPeerJoin((peerId) => {
+      console.log('[NETWORK P2P] Peer connected via WebRTC:', peerId);
 
-      // Send our own roster info to the newly joined peer
-      if (this.actions.roster && this.actions.roster.send) {
-        this.actions.roster.send({
+      // Send my local roster and current state to newly joined peer
+      sendRoster({
+        id: this.selfId,
+        callsign: this.localCallsign,
+        role: this.localRole,
+        isReady: this.isReady
+      }, peerId);
+    });
+
+    // 2. Peer Leaves
+    this.trysteroRoom.onPeerLeave((peerId) => {
+      console.log('[NETWORK P2P] Peer disconnected:', peerId);
+      const playerInfo = this.peerMap.get(peerId);
+      const targetId = playerInfo ? playerInfo.id : peerId;
+
+      this.peerMap.delete(peerId);
+      if (this.currentRoom) {
+        this.currentRoom.players = this.currentRoom.players.filter(p => p.id !== targetId);
+      }
+
+      if (this.onPlayerLeft) {
+        this.onPlayerLeft(targetId);
+      }
+    });
+
+    // 3. Receive Roster Info
+    getRoster((data, peerId) => {
+      const remoteId = data.id || peerId;
+      const existing = this.peerMap.get(peerId);
+
+      this.peerMap.set(peerId, {
+        id: remoteId,
+        callsign: data.callsign,
+        role: data.role,
+        isReady: data.isReady
+      });
+
+      if (this.currentRoom) {
+        const idx = this.currentRoom.players.findIndex(p => p.id === remoteId);
+        if (idx >= 0) {
+          this.currentRoom.players[idx] = {
+            id: remoteId,
+            callsign: data.callsign,
+            role: data.role,
+            isReady: data.isReady
+          };
+        } else {
+          this.currentRoom.players.push({
+            id: remoteId,
+            callsign: data.callsign,
+            role: data.role,
+            isReady: data.isReady
+          });
+        }
+      }
+
+      if (!existing && this.onPlayerJoined) {
+        this.onPlayerJoined({
+          id: remoteId,
+          callsign: data.callsign,
+          role: data.role,
+          isReady: data.isReady
+        });
+
+        // Reply with our own roster so two-way connection is guaranteed
+        sendRoster({
           id: this.selfId,
           callsign: this.localCallsign,
           role: this.localRole,
@@ -151,117 +189,68 @@ export class NetworkManager {
         }, peerId);
       }
 
-      // Send our current authoritative satellite state to new peer
-      if (this.actions.sync && this.actions.sync.send) {
-        this.actions.sync.send({
-          loadout: { ...gameState.loadout },
-          tuning: { ...gameState.tuning },
-          scenarioIndex: gameState.currentScenarioIndex
-        }, peerId);
-      }
-    });
-
-    // 2. Peer Leaves Room
-    this.room.onPeerLeave((peerId) => {
-      console.log(`[P2P NETWORK] Peer departed: ${peerId}`);
-      this.playersMap.delete(peerId);
-      this.currentRoom.players = Array.from(this.playersMap.values());
-
-      if (this.onPlayerLeft) {
-        this.onPlayerLeft(peerId);
-      }
-    });
-
-    // 3. Receive Peer Roster Data
-    rosterAction.onReceive((data, peerId) => {
-      const pid = data.id || peerId;
-      const isNew = !this.playersMap.has(pid);
-
-      this.playersMap.set(pid, {
-        id: pid,
-        callsign: data.callsign,
-        role: data.role,
-        isReady: !!data.isReady,
-        transform: { pos: [0, 0, 5.2], rot: [0, 0, 0, 1], thrusters: false }
-      });
-
-      this.currentRoom.players = Array.from(this.playersMap.values());
-
-      if (isNew && this.onPlayerJoined) {
-        this.onPlayerJoined(this.playersMap.get(pid));
-      }
       if (this.onRoleUpdated) {
-        this.onRoleUpdated(pid, data.role);
+        this.onRoleUpdated(remoteId, data.role);
       }
       if (this.onReadyUpdated) {
-        this.onReadyUpdated(pid, data.isReady);
+        this.onReadyUpdated(remoteId, data.isReady);
       }
     });
 
-    // 4. Receive Peer 3D Transforms (20Hz)
-    transformAction.onReceive((transform, peerId) => {
+    // 4. Receive Transform
+    getTransform((data, peerId) => {
+      const playerInfo = this.peerMap.get(peerId);
+      const targetId = playerInfo ? playerInfo.id : peerId;
       if (this.onPlayerTransform) {
-        this.onPlayerTransform(peerId, transform);
+        this.onPlayerTransform(targetId, data);
       }
     });
 
-    // 5. Receive Subsystem Modifications
-    satelliteAction.onReceive((msg, peerId) => {
+    // 5. Receive Satellite Subsystem Modification
+    getSatellite((data, peerId) => {
       if (this.onSatelliteUpdated) {
-        this.onSatelliteUpdated(msg.satelliteState, peerId, msg.category);
+        this.onSatelliteUpdated(data.satelliteState, peerId, data.category);
       }
     });
 
-    // 6. Receive 3D Waypoint Pings
-    pingAction.onReceive((ping, peerId) => {
+    // 6. Receive Waypoint Ping
+    getPing((data) => {
       if (this.onTeamPing) {
-        this.onTeamPing({ ...ping, playerId: peerId });
+        this.onTeamPing(data);
       }
     });
 
-    // 7. Receive Radio Messages
-    radioAction.onReceive((msg, peerId) => {
+    // 7. Receive Radio Message
+    getRadio((data) => {
       if (this.onRadioMessage) {
-        this.onRadioMessage({ ...msg, playerId: peerId });
+        this.onRadioMessage(data);
       }
     });
 
-    // 8. Receive Launch Trigger
-    launchAction.onReceive((countdown, peerId) => {
-      if (this.onLaunchStart) {
-        this.onLaunchStart(countdown);
-      }
-    });
-
-    // 9. Receive Mission Advancement
-    advanceAction.onReceive((scenarioIndex, peerId) => {
+    // 8. Receive Mission Advance
+    getAdvance((data) => {
       if (this.onMissionAdvanced) {
-        this.onMissionAdvanced(scenarioIndex);
+        this.onMissionAdvanced(data.scenarioIndex);
       }
     });
 
-    // 10. Receive Initial Full Sync
-    syncAction.onReceive((state, peerId) => {
-      if (state && state.loadout && state.tuning) {
-        Object.assign(gameState.loadout, state.loadout);
-        Object.assign(gameState.tuning, state.tuning);
-        if (state.scenarioIndex !== undefined) {
-          gameState.currentScenarioIndex = state.scenarioIndex;
-        }
-        if (this.onSatelliteUpdated) {
-          this.onSatelliteUpdated(state, peerId, null);
-        }
+    // 9. Receive Launch Countdown
+    getCountdown((data) => {
+      if (this.onLaunchStart) {
+        this.onLaunchStart(data.countdown);
       }
     });
   }
 
   setRole(role) {
     this.localRole = role;
-    const selfData = this.playersMap.get(this.selfId);
-    if (selfData) selfData.role = role;
+    if (this.currentRoom) {
+      const selfPlayer = this.currentRoom.players.find(p => p.id === this.selfId);
+      if (selfPlayer) selfPlayer.role = role;
+    }
 
-    if (this.actions && this.actions.roster && this.actions.roster.send) {
-      this.actions.roster.send({
+    if (this.actions) {
+      this.actions.sendRoster({
         id: this.selfId,
         callsign: this.localCallsign,
         role: this.localRole,
@@ -275,12 +264,14 @@ export class NetworkManager {
   }
 
   setReady(isReady) {
-    this.isReady = !!isReady;
-    const selfData = this.playersMap.get(this.selfId);
-    if (selfData) selfData.isReady = this.isReady;
+    this.isReady = isReady;
+    if (this.currentRoom) {
+      const selfPlayer = this.currentRoom.players.find(p => p.id === this.selfId);
+      if (selfPlayer) selfPlayer.isReady = isReady;
+    }
 
-    if (this.actions && this.actions.roster && this.actions.roster.send) {
-      this.actions.roster.send({
+    if (this.actions) {
+      this.actions.sendRoster({
         id: this.selfId,
         callsign: this.localCallsign,
         role: this.localRole,
@@ -289,77 +280,71 @@ export class NetworkManager {
     }
 
     if (this.onReadyUpdated) {
-      this.onReadyUpdated(this.selfId, this.isReady);
+      this.onReadyUpdated(this.selfId, isReady);
     }
 
     // Check if all players in room are ready
-    const allPlayers = Array.from(this.playersMap.values());
-    const allReady = allPlayers.length > 0 && allPlayers.every(p => p.isReady);
-
-    if (allReady) {
-      if (this.actions && this.actions.launch && this.actions.launch.send) {
-        this.actions.launch.send(3);
-      }
-      if (this.onLaunchStart) {
-        this.onLaunchStart(3);
+    if (this.currentRoom && this.currentRoom.players.length > 0) {
+      const allReady = this.currentRoom.players.every(p => p.isReady);
+      if (allReady && this.actions) {
+        this.actions.sendCountdown({ countdown: 3 });
+        if (this.onLaunchStart) {
+          this.onLaunchStart(3);
+        }
       }
     }
   }
 
   sendTransform(pos, quat, thrusters, aimTarget) {
+    if (!this.actions) return;
     const now = performance.now();
     if (now - this.lastTransformSent < this.transformInterval) return;
     this.lastTransformSent = now;
 
-    if (this.actions && this.actions.transform && this.actions.transform.send) {
-      this.actions.transform.send({
-        pos: [Number(pos.x.toFixed(3)), Number(pos.y.toFixed(3)), Number(pos.z.toFixed(3))],
-        rot: [Number(quat.x.toFixed(3)), Number(quat.y.toFixed(3)), Number(quat.z.toFixed(3)), Number(quat.w.toFixed(3))],
-        thrusters: !!thrusters,
-        aimTarget: aimTarget ? [Number(aimTarget.x.toFixed(2)), Number(aimTarget.y.toFixed(2)), Number(aimTarget.z.toFixed(2))] : null
-      });
-    }
+    this.actions.sendTransform({
+      pos: [Number(pos.x.toFixed(3)), Number(pos.y.toFixed(3)), Number(pos.z.toFixed(3))],
+      rot: [Number(quat.x.toFixed(3)), Number(quat.y.toFixed(3)), Number(quat.z.toFixed(3)), Number(quat.w.toFixed(3))],
+      thrusters: !!thrusters,
+      aimTarget: aimTarget ? [Number(aimTarget.x.toFixed(2)), Number(aimTarget.y.toFixed(2)), Number(aimTarget.z.toFixed(2))] : null
+    });
   }
 
-  sendSatelliteModify(category, action, value) {
-    if (this.actions && this.actions.satellite && this.actions.satellite.send) {
-      this.actions.satellite.send({
-        satelliteState: {
-          loadout: { ...gameState.loadout },
-          tuning: { ...gameState.tuning }
-        },
-        category,
-        action,
-        value
-      });
-    }
+  sendSatelliteModify(category, action, value, currentSatelliteState) {
+    if (!this.actions) return;
+    this.actions.sendSatellite({
+      category,
+      action,
+      value,
+      satelliteState: currentSatelliteState
+    });
   }
 
   sendTeamPing(worldPos, label) {
-    if (this.actions && this.actions.ping && this.actions.ping.send) {
-      this.actions.ping.send({
-        worldPos: [Number(worldPos.x.toFixed(2)), Number(worldPos.y.toFixed(2)), Number(worldPos.z.toFixed(2))],
-        label: label || 'WAYPOINT',
-        role: this.localRole,
-        callsign: this.localCallsign
-      });
-    }
+    if (!this.actions) return;
+    this.actions.sendPing({
+      playerId: this.selfId,
+      callsign: this.localCallsign,
+      role: this.localRole,
+      worldPos: [worldPos.x, worldPos.y, worldPos.z],
+      label: label || 'WAYPOINT'
+    });
   }
 
   sendRadioMessage(text) {
-    if (this.actions && this.actions.radio && this.actions.radio.send) {
-      this.actions.radio.send({
-        text,
-        role: this.localRole,
-        callsign: this.localCallsign
-      });
-    }
+    if (!this.actions) return;
+    this.actions.sendRadio({
+      playerId: this.selfId,
+      callsign: this.localCallsign,
+      role: this.localRole,
+      text
+    });
   }
 
-  sendAdvanceMission() {
-    if (this.actions && this.actions.advance && this.actions.advance.send) {
-      this.actions.advance.send(gameState.currentScenarioIndex);
-    }
+  sendAdvanceMission(scenarioIndex) {
+    if (!this.actions) return;
+    this.actions.sendAdvance({
+      scenarioIndex
+    });
   }
 }
 

@@ -129,7 +129,10 @@ controller.onCycleComponent = (category) => {
     hud.updateEvaPrompt(controller.hoveredObject, gameState, false);
 
     if (isMultiplayerSession) {
-      networkManager.sendSatelliteModify(category, 'swap', newPart.id);
+      networkManager.sendSatelliteModify(category, 'swap', newPart.id, {
+        loadout: gameState.loadout,
+        tuning: gameState.tuning
+      });
     }
   }
 };
@@ -150,7 +153,10 @@ controller.onTuneDelta = (tuneParam, delta) => {
   hud.updateEvaPrompt(controller.hoveredObject, gameState, true);
 
   if (isMultiplayerSession) {
-    networkManager.sendSatelliteModify(cat, 'tune', { param: tuneParam, val: newVal });
+    networkManager.sendSatelliteModify(cat, 'tune', { param: tuneParam, val: newVal }, {
+      loadout: gameState.loadout,
+      tuning: gameState.tuning
+    });
   }
 };
 
@@ -186,7 +192,7 @@ controller.onActivateAvionics = () => {
       syncState();
 
       if (isMultiplayerSession) {
-        networkManager.sendAdvanceMission();
+        networkManager.sendAdvanceMission(gameState.currentScenarioIndex);
       }
     });
   });
