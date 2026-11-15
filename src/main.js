@@ -274,7 +274,57 @@ const lobby = new CrewLobby((sessionData) => {
   isMultiplayerSession = sessionData.isMultiplayer;
   myAssignedRole = sessionData.role || 'power';
 
+  const roomRow = document.getElementById('hud-room-row');
+  const roomCodeEl = document.getElementById('hud-room-code');
+  const pauseRoomBox = document.getElementById('pause-room-section');
+  const pauseRoomCode = document.getElementById('pause-room-code');
+  const btnPauseCopy = document.getElementById('btn-pause-copy-link');
+  const pauseCopyFeedback = document.getElementById('pause-copy-feedback');
+
   if (isMultiplayerSession && sessionData.room) {
+    const code = sessionData.room.code;
+
+    // Display room code on main HUD telemetry panel
+    if (roomRow) {
+      roomRow.style.display = 'flex';
+      roomRow.style.cursor = 'pointer';
+      roomRow.title = 'Click to copy room invite link';
+      roomRow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}${window.location.pathname}?room=${code}`;
+        navigator.clipboard.writeText(url).then(() => {
+          const oldText = roomCodeEl.textContent;
+          roomCodeEl.textContent = 'COPIED!';
+          setTimeout(() => { roomCodeEl.textContent = oldText; }, 1500);
+        });
+      });
+    }
+    if (roomCodeEl) roomCodeEl.textContent = code;
+
+    // Display room code on pause modal with copy link
+    if (pauseRoomBox) pauseRoomBox.style.display = 'flex';
+    if (pauseRoomCode) pauseRoomCode.textContent = code;
+
+    if (btnPauseCopy && !btnPauseCopy._bound) {
+      btnPauseCopy._bound = true;
+      btnPauseCopy.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}${window.location.pathname}?room=${code}`;
+        navigator.clipboard.writeText(url).then(() => {
+          if (pauseCopyFeedback) {
+            pauseCopyFeedback.textContent = '✓ INVITE LINK COPIED TO CLIPBOARD!';
+            setTimeout(() => { if (pauseCopyFeedback) pauseCopyFeedback.textContent = ''; }, 3000);
+          }
+        }).catch(() => {
+          navigator.clipboard.writeText(code);
+          if (pauseCopyFeedback) {
+            pauseCopyFeedback.textContent = '✓ ROOM CODE COPIED!';
+            setTimeout(() => { if (pauseCopyFeedback) pauseCopyFeedback.textContent = ''; }, 3000);
+          }
+        });
+      });
+    }
+
     // Populate any existing players in room
     sessionData.room.players.forEach(p => {
       if (p.id !== networkManager.selfId) {
@@ -288,6 +338,9 @@ const lobby = new CrewLobby((sessionData) => {
       satellite.updateLoadout(gameState.loadout, gameState.tuning);
       syncState();
     }
+  } else {
+    if (roomRow) roomRow.style.display = 'none';
+    if (pauseRoomBox) pauseRoomBox.style.display = 'none';
   }
 
   // Engage Zero-G Spacewalk Flight Controls

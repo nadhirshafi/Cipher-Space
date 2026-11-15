@@ -62,6 +62,10 @@
             <span>TRANSPONDER:</span>
             <span class="telemetry-value nominal">SYNCHRONIZED</span>
           </div>
+          <div class="telemetry-row" id="hud-room-row" style="display: none;">
+            <span>CREW ROOM:</span>
+            <span id="hud-room-code" class="telemetry-value room-code-glow">----</span>
+          </div>
         </div>
 
         <!-- 4-Player Crew Roster -->
@@ -198,6 +202,15 @@
       <div class="modal-title">CIPHER SPACE</div>
       <div class="modal-subtitle">ORBITAL EVA SIMULATION // SAT-ALPHA 01</div>
       <div class="modal-btn">CLICK TO RESUME ZERO-G FLIGHT</div>
+
+      <div id="pause-room-section" class="pause-room-box" style="display: none;">
+        <div class="pause-room-info">
+          <span class="pause-room-lbl">CREW ROOM:</span>
+          <span id="pause-room-code" class="pause-room-val">----</span>
+        </div>
+        <button id="btn-pause-copy-link" class="lobby-btn-small">🔗 COPY INVITE LINK</button>
+        <span id="pause-copy-feedback" class="copy-feedback-text"></span>
+      </div>
 
       <div class="controls-summary">
         <div><span class="key-badge">W</span> <span class="key-badge">S</span> Thrust Forward / Back</div>

@@ -80,28 +80,69 @@ export class MultiplayerHUD {
     if (!this.rosterContainer || !room) return;
 
     const players = room.players || [];
-    this.rosterContainer.innerHTML = `
-      <div class="crew-roster-title">ORBITAL EXPEDITION CREW (${players.length}/4)</div>
-      <div class="crew-roster-list">
-        ${players.map(p => {
-          const role = ROLE_CONFIGS[p.role] || ROLE_CONFIGS.power;
-          let distText = 'SELF';
-          if (p.id !== networkManager.selfId && avatarsMap && avatarsMap.has(p.id)) {
-            const avatar = avatarsMap.get(p.id);
-            const dist = localPlayerPos.distanceTo(avatar.group.position);
-            distText = `${dist.toFixed(1)} m`;
-          }
-          return `
-            <div class="crew-member-pill ${p.id === networkManager.selfId ? 'self' : ''}">
-              <span class="crew-role-dot" style="background-color: ${role.colorCss}; box-shadow: 0 0 6px ${role.colorCss};"></span>
-              <span class="crew-callsign">${p.callsign}</span>
-              <span class="crew-role-code" style="color: ${role.colorCss};">[${role.code}]</span>
-              <span class="crew-dist">${distText}</span>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    const rosterKey = `${room.code}_${players.length}_${players.map(p => `${p.id}_${p.role}_${p.isReady}`).join('_')}`;
+
+    // Rebuild full roster DOM only when members, count, or room changes
+    if (this._lastRosterKey !== rosterKey) {
+      this._lastRosterKey = rosterKey;
+
+      this.rosterContainer.innerHTML = `
+        <div class="crew-roster-header">
+          <div class="crew-roster-title">ORBITAL CREW (${players.length}/4)</div>
+          <div class="crew-roster-code-pill" id="hud-copy-room-pill" title="Click to copy invite link">
+            <span class="code-lbl">ROOM:</span>
+            <span class="code-val">${room.code}</span>
+            <span class="code-copy-icon">📋</span>
+          </div>
+        </div>
+        <div class="crew-roster-list">
+          ${players.map(p => {
+            const role = ROLE_CONFIGS[p.role] || ROLE_CONFIGS.power;
+            const isSelf = p.id === networkManager.selfId;
+            return `
+              <div class="crew-member-pill ${isSelf ? 'self' : ''}" id="roster-pill-${p.id}">
+                <span class="crew-role-dot" style="background-color: ${role.colorCss}; box-shadow: 0 0 6px ${role.colorCss};"></span>
+                <span class="crew-callsign">${p.callsign}${isSelf ? ' (YOU)' : ''}</span>
+                <span class="crew-role-code" style="color: ${role.colorCss};">[${role.code}]</span>
+                <span class="crew-dist" id="dist-${p.id}">${isSelf ? 'SELF' : '-- m'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // Bind click on Room Code Pill to copy invite link
+      const copyPill = this.rosterContainer.querySelector('#hud-copy-room-pill');
+      if (copyPill) {
+        copyPill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const url = `${window.location.origin}${window.location.pathname}?room=${room.code}`;
+          navigator.clipboard.writeText(url).then(() => {
+            copyPill.innerHTML = `<span style="color:#55ff99; font-weight:bold;">✓ COPIED LINK!</span>`;
+            setTimeout(() => {
+              this._lastRosterKey = ''; // trigger fresh redraw
+            }, 1800);
+          }).catch(() => {
+            navigator.clipboard.writeText(room.code);
+            copyPill.innerHTML = `<span style="color:#55ff99; font-weight:bold;">✓ COPIED CODE!</span>`;
+            setTimeout(() => {
+              this._lastRosterKey = '';
+            }, 1800);
+          });
+        });
+      }
+    }
+
+    // Update real-time distances smoothly on existing elements
+    players.forEach(p => {
+      if (p.id === networkManager.selfId) return;
+      const distEl = this.rosterContainer.querySelector(`#dist-${p.id}`);
+      if (distEl && avatarsMap && avatarsMap.has(p.id)) {
+        const avatar = avatarsMap.get(p.id);
+        const dist = localPlayerPos.distanceTo(avatar.group.position);
+        distEl.textContent = `${dist.toFixed(1)} m`;
+      }
+    });
   }
 
   spawnWaypointPing(worldPos, label, roleKey, callsign) {

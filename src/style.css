@@ -743,7 +743,17 @@ html, body {
    VISOR CREW ROSTER & RADIO LOG
    ========================================= */
 .crew-panel {
-  min-width: 260px;
+  min-width: 270px;
+}
+
+.crew-roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+  gap: 8px;
 }
 
 .crew-roster-title {
@@ -752,9 +762,114 @@ html, body {
   font-weight: 700;
   letter-spacing: 1.5px;
   color: #00e5ff;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-  padding-bottom: 4px;
-  margin-bottom: 6px;
+}
+
+.crew-roster-code-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  color: #00e5ff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.crew-roster-code-pill:hover {
+  background: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.crew-roster-code-pill .code-val {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+}
+
+.crew-roster-code-pill .code-copy-icon {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.room-code-glow {
+  color: #00e5ff !important;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+  background: rgba(0, 229, 255, 0.12);
+  padding: 1px 7px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+}
+
+/* Pause screen active room box */
+.pause-room-box {
+  margin-top: 14px;
+  margin-bottom: 8px;
+  padding: 10px 16px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px dashed rgba(0, 229, 255, 0.45);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pause-room-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.pause-room-lbl {
+  color: #8bb2d6;
+  letter-spacing: 1.2px;
+}
+
+.pause-room-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+
+.lobby-btn-small {
+  background: rgba(0, 229, 255, 0.18);
+  border: 1px solid #00e5ff;
+  color: #ffffff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lobby-btn-small:hover {
+  background: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.6);
+}
+
+.copy-feedback-text {
+  font-size: 11px;
+  color: #55ff99;
+  min-height: 14px;
+  letter-spacing: 1px;
 }
 
 .crew-roster-list {
